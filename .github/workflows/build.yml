@@ -34,11 +34,16 @@ jobs:
         run: chmod +x gradlew || true
 
       - name: Build Plugins (.cs3)
-        run: ./gradlew make --stacktrace
+        run: |
+          ./gradlew make makePluginsJson --stacktrace
+          mkdir -p dist
+          find . -name "*.cs3" -exec cp {} dist/ \;
+          cp build/plugins.json dist/ || true
+          ls -la dist/
 
       - name: Deploy to builds branch
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: builds
-          folder: build
+          folder: dist
           clean: true
