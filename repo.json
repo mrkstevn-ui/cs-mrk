@@ -1,0 +1,8 @@
+{
+  "name": "Cloudstream TR Özel Depo",
+  "description": "Güncel ve çalışan Türkçe dizi/film sağlayıcıları",
+  "manifestVersion": 1,
+  "pluginLists": [
+    "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/plugins.json"
+  ]
+}
