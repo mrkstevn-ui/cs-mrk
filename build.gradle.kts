@@ -52,7 +52,13 @@ subprojects {
         tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
             kotlinOptions {
                 jvmTarget = "1.8"
-                freeCompilerArgs = freeCompilerArgs + "-Xopt-in=kotlin.RequiresOptIn"
+                freeCompilerArgs = freeCompilerArgs + listOf(
+                    "-Xskip-metadata-version-check",
+                    "-opt-in=kotlin.RequiresOptIn",
+                    "-Xno-call-assertions",
+                    "-Xno-param-assertions",
+                    "-Xno-receiver-assertions"
+                )
             }
         }
     }
