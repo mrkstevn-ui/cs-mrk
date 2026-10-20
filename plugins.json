@@ -292,6 +292,26 @@
         "name": "HDFilmDelisi"
     },
     {
+        "iconUrl": "https://inattv1326.xyz/images/logo.png",
+        "fileHash": "sha256-9c16fa7fbfc32975967d9bd7532064baadf6a17f94a8f6585a27ea85a42d3235",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 12935,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 1,
+        "internalName": "InatTV",
+        "description": "\u0130nat TV & Canl\u0131 TV / Spor Kanallar\u0131",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/InatTV.cs3",
+        "name": "InatTV"
+    },
+    {
         "iconUrl": "https://kultfilmler.net/wp-content/uploads/2020/05/cropped-favicon-192x192.png",
         "fileHash": "sha256-74bb8da9b21a9c865544c391083c4731f0976c6d126676127586e9b99df7f7ac",
         "apiVersion": 1,
