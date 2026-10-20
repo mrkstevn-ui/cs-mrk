@@ -135,5 +135,18 @@
       "https://dizipal1593.com"
     ],
     "verification_keyword": "dizipal"
+  },
+  "FullHDFilmizlesene": {
+    "file": "FullHDFilmizlesene/src/main/kotlin/com/turk/FullHDFilmizlesene.kt",
+    "gradle": "FullHDFilmizlesene/build.gradle.kts",
+    "current_url": "https://www.fullhdfilmizlesene.now",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://www.fullhdfilmizlesene.now",
+      "https://www.fullhdfilmizlesene.pw",
+      "https://www.fullhdfilmizlesene.de",
+      "https://www.fullhdfilmizlesene.org"
+    ],
+    "verification_keyword": "fullhdfilmizlesene"
   }
 }
