@@ -148,5 +148,17 @@
       "https://www.fullhdfilmizlesene.org"
     ],
     "verification_keyword": "fullhdfilmizlesene"
+  },
+  "FilmKovasi": {
+    "file": "FilmKovasi/src/main/kotlin/com/turk/FilmKovasi.kt",
+    "gradle": "FilmKovasi/build.gradle.kts",
+    "current_url": "https://filmkovasi.co",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://filmkovasi.co",
+      "https://filmkovasi.org",
+      "https://filmkovasi.net"
+    ],
+    "verification_keyword": "filmkovası"
   }
 }
