@@ -1,7 +1,7 @@
 {
   "HDFilmCehennemi": {
-    "file": "HDFilmCehennemi/src/main/kotlin/com/turk/HDFilmCehennemi.kt",
-    "gradle": "HDFilmCehennemi/build.gradle.kts",
+    "file": "TurkProviders/src/HDFilmCehennemi.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://www.hdfilmcehennemi.nl",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
@@ -14,8 +14,8 @@
     "verification_keyword": "hdfilmcehennemi"
   },
   "FilmModu": {
-    "file": "FilmModu/src/main/kotlin/com/turk/FilmModu.kt",
-    "gradle": "FilmModu/build.gradle.kts",
+    "file": "TurkProviders/src/FilmModu.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://filmmodu.cc",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
@@ -27,8 +27,8 @@
     "verification_keyword": "filmmodu"
   },
   "Dizigom": {
-    "file": "Dizigom/src/main/kotlin/com/turk/Dizigom.kt",
-    "gradle": "Dizigom/build.gradle.kts",
+    "file": "TurkProviders/src/Dizigom.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://www.dizigom.news",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
@@ -39,8 +39,8 @@
     "verification_keyword": "dizigom"
   },
   "KultFilmler": {
-    "file": "KultFilmler/src/main/kotlin/com/turk/KultFilmler.kt",
-    "gradle": "KultFilmler/build.gradle.kts",
+    "file": "TurkProviders/src/KultFilmler.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://kultfilmler.net",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
@@ -51,8 +51,8 @@
     "verification_keyword": "kült"
   },
   "DiziBox": {
-    "file": "DiziBox/src/main/kotlin/com/turk/DiziBox.kt",
-    "gradle": "DiziBox/build.gradle.kts",
+    "file": "TurkProviders/src/DiziBox.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://www.dizibox.live",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
@@ -64,8 +64,8 @@
     "verification_keyword": "dizibox"
   },
   "AnimeciX": {
-    "file": "AnimeciX/src/main/kotlin/com/turk/AnimeciX.kt",
-    "gradle": "AnimeciX/build.gradle.kts",
+    "file": "TurkProviders/src/AnimeciX.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://animecix.tv",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
@@ -76,8 +76,8 @@
     "verification_keyword": "animecix"
   },
   "CizgiMax": {
-    "file": "CizgiMax/src/main/kotlin/com/turk/CizgiMax.kt",
-    "gradle": "CizgiMax/build.gradle.kts",
+    "file": "TurkProviders/src/CizgiMax.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://cizgimax.online",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
@@ -88,8 +88,8 @@
     "verification_keyword": "çizgimax"
   },
   "DiziFilmizle": {
-    "file": "DiziFilmizle/src/main/kotlin/com/turk/DiziFilmizle.kt",
-    "gradle": "DiziFilmizle/build.gradle.kts",
+    "file": "TurkProviders/src/DiziFilmizle.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://dizifilmizle.to",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
@@ -100,8 +100,8 @@
     "verification_keyword": "dizifilmizle"
   },
   "BelgeselX": {
-    "file": "BelgeselX/src/main/kotlin/com/turk/BelgeselX.kt",
-    "gradle": "BelgeselX/build.gradle.kts",
+    "file": "TurkProviders/src/BelgeselX.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://belgeselx.com",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
@@ -112,8 +112,8 @@
     "verification_keyword": "belgeselx"
   },
   "DiziGecesi": {
-    "file": "DiziGecesi/src/main/kotlin/com/turk/DiziGecesi.kt",
-    "gradle": "DiziGecesi/build.gradle.kts",
+    "file": "TurkProviders/src/DiziGecesi.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://dizigecesi.com",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
@@ -124,8 +124,8 @@
     "verification_keyword": "dizigecesi"
   },
   "DiziPal": {
-    "file": "DiziPal/src/main/kotlin/com/turk/DiziPal.kt",
-    "gradle": "DiziPal/build.gradle.kts",
+    "file": "TurkProviders/src/DiziPal.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://dizipal1591.com",
     "strategy": "numeric_increment",
     "pattern": "https://dizipal{num}.com",
@@ -137,8 +137,8 @@
     "verification_keyword": "dizipal"
   },
   "FullHDFilmizlesene": {
-    "file": "FullHDFilmizlesene/src/main/kotlin/com/turk/FullHDFilmizlesene.kt",
-    "gradle": "FullHDFilmizlesene/build.gradle.kts",
+    "file": "TurkProviders/src/FullHDFilmizlesene.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://www.fullhdfilmizlesene.now",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
@@ -150,8 +150,8 @@
     "verification_keyword": "fullhdfilmizlesene"
   },
   "FilmKovasi": {
-    "file": "FilmKovasi/src/main/kotlin/com/turk/FilmKovasi.kt",
-    "gradle": "FilmKovasi/build.gradle.kts",
+    "file": "TurkProviders/src/FilmKovasi.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://filmkovasi.co",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
@@ -162,8 +162,8 @@
     "verification_keyword": "filmkovası"
   },
   "HDFilmDelisi": {
-    "file": "HDFilmDelisi/src/main/kotlin/com/turk/HDFilmDelisi.kt",
-    "gradle": "HDFilmDelisi/build.gradle.kts",
+    "file": "TurkProviders/src/HDFilmDelisi.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://hdfilmdelisi.one",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
@@ -174,8 +174,8 @@
     "verification_keyword": "hdfilmdelisi"
   },
   "RareFilmm": {
-    "file": "RareFilmm/src/main/kotlin/com/turk/RareFilmm.kt",
-    "gradle": "RareFilmm/build.gradle.kts",
+    "file": "TurkProviders/src/RareFilmm.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://rarefilmm.com",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
@@ -186,8 +186,8 @@
     "verification_keyword": "rarefilmm"
   },
   "DiziYou": {
-    "file": "DiziYou/src/main/kotlin/com/turk/DiziYou.kt",
-    "gradle": "DiziYou/build.gradle.kts",
+    "file": "TurkProviders/src/DiziYou.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://diziyou.net",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
@@ -198,8 +198,8 @@
     "verification_keyword": "diziyou"
   },
   "InatTV": {
-    "file": "InatTV/src/main/kotlin/com/turk/InatTV.kt",
-    "gradle": "InatTV/build.gradle.kts",
+    "file": "TurkProviders/src/InatTV.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://inattv1326.xyz",
     "strategy": "numeric_increment",
     "pattern": "https://inattv{num}.xyz",
@@ -212,8 +212,8 @@
     "verification_keyword": "inat"
   },
   "Patronspor": {
-    "file": "Patronspor/src/main/kotlin/com/turk/Patronspor.kt",
-    "gradle": "Patronspor/build.gradle.kts",
+    "file": "TurkProviders/src/Patronspor.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://patronkale1.cfd",
     "strategy": "numeric_increment",
     "pattern": "https://patronkale{num}.cfd",
@@ -225,8 +225,8 @@
     "verification_keyword": "patron"
   },
   "SetFilmIzle": {
-    "file": "SetFilmIzle/src/main/kotlin/com/turk/SetFilmIzle.kt",
-    "gradle": "SetFilmIzle/build.gradle.kts",
+    "file": "TurkProviders/src/SetFilmIzle.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://www.setfilmizle.ltd",
     "strategy": "redirect_follow",
     "mirrors": [
@@ -236,8 +236,8 @@
     "verification_keyword": "setfilm"
   },
   "SezonlukDizi": {
-    "file": "SezonlukDizi/src/main/kotlin/com/turk/SezonlukDizi.kt",
-    "gradle": "SezonlukDizi/build.gradle.kts",
+    "file": "TurkProviders/src/SezonlukDizi.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
     "current_url": "https://sezonlukdizi.cc",
     "strategy": "redirect_follow",
     "mirrors": [
