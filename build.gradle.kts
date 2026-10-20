@@ -33,7 +33,7 @@ subprojects {
     apply(plugin = "com.lagradost.cloudstream3.gradle")
 
     cloudstream {
-        setRepo(iniFile = File(rootDir, "repo.json"))
+        setRepo(System.getenv("GITHUB_REPOSITORY") ?: "https://github.com/mrkstevn-ui/cs-mrk")
     }
 
     android {
