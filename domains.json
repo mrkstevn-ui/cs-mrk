@@ -196,5 +196,19 @@
       "https://diziyou.com"
     ],
     "verification_keyword": "diziyou"
+  },
+  "InatTV": {
+    "file": "InatTV/src/main/kotlin/com/turk/InatTV.kt",
+    "gradle": "InatTV/build.gradle.kts",
+    "current_url": "https://inattv1326.xyz",
+    "strategy": "numeric_increment",
+    "pattern": "https://inattv{num}.xyz",
+    "mirrors": [
+      "https://inattv1326.xyz",
+      "https://inattv1327.xyz",
+      "https://patronkale1.cfd",
+      "https://patronsports2.cfd"
+    ],
+    "verification_keyword": "inat"
   }
 }
