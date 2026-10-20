@@ -222,14 +222,15 @@ class HDFilmCehennemi : MainAPI() {
 
             if (!resolvedUrl.isNullOrEmpty() && resolvedUrl.startsWith("http")) {
                 callback.invoke(
-                    ExtractorLink(
+                    newExtractorLink(
                         source = name,
                         name = "$name ($label - 1080p HD)",
                         url = resolvedUrl,
-                        referer = "https://hdfilmcehennemi.mobi/",
-                        quality = Qualities.P1080.value,
                         type = INFER_TYPE
-                    )
+                    ) {
+                        this.referer = "https://hdfilmcehennemi.mobi/"
+                        this.quality = Qualities.P1080.value
+                    }
                 )
             }
         } catch (e: Exception) {
