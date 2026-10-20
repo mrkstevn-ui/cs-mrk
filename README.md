@@ -8,7 +8,7 @@ Cloudstream 3 için güncel Türkçe dizi, film, anime ve canlı yayın sağlay�
 2. **Ayarlar > Eklentiler > Depo Ekle** bölümüne gidin.
 3. Aşağıdaki bağlantıyı ekleyin:
    ```text
-   https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/plugins.json
+   https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/main/repo.json
    ```
 4. Eklentiyi tek tıkla yükleyin.
 
