@@ -39,6 +39,7 @@ jobs:
           mkdir -p dist
           find . -name "*.cs3" -exec cp {} dist/ \;
           cp build/plugins.json dist/ || true
+          cp repo.json dist/ || true
           ls -la dist/
 
       - name: Deploy to builds branch
