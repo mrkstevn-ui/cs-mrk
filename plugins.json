@@ -290,5 +290,25 @@
         "description": "K\u00fcltFilmler Se\u00e7kin Film ve Dizi Sa\u011flay\u0131c\u0131",
         "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/KultFilmler.cs3",
         "name": "KultFilmler"
+    },
+    {
+        "iconUrl": "https://rarefilmm.com/favicon.ico",
+        "fileHash": "sha256-963774a04eb4b767b603f517aeb3a5556bce133c9c9a4227e5dba3015c282bda",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 10728,
+        "status": 1,
+        "language": "en",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "RareFilmm",
+        "description": "RareFilmm - The Cave of Forgotten Films",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/RareFilmm.cs3",
+        "name": "RareFilmm"
     }
 ]
