@@ -110,5 +110,17 @@
       "https://belgeselx.org"
     ],
     "verification_keyword": "belgeselx"
+  },
+  "DiziGecesi": {
+    "file": "DiziGecesi/src/main/kotlin/com/turk/DiziGecesi.kt",
+    "gradle": "DiziGecesi/build.gradle.kts",
+    "current_url": "https://dizigecesi.com",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://dizigecesi.com",
+      "https://dizigecesi.org",
+      "https://dizigecesi.net"
+    ],
+    "verification_keyword": "dizigecesi"
   }
 }

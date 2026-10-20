@@ -27,6 +27,7 @@ Bu depo, Cloudstream 3 için güncel ve reklamsız çalışan Türkçe dizi, fil
 | **ÇizgiMax** | Çizgi Film, Anime, Dizi | ✅ Aktif | NP-Resolve & Tau-Video 1080p Doğrudan MP4 / Vidmoly |
 | **DiziFilmizle** | Film, Dizi | ✅ Aktif | Next.js SSR Ayrıştırma, Vidmixi 1080p HLS ve Altyazı |
 | **BelgeselX** | Belgesel | ✅ Aktif | Zengin Belgesel Arşivi, Google Drive / MP4 Oynatıcı |
+| **DiziGecesi** | Dizi, Film | ✅ Aktif | AJAX Embed Ayrıştırıcı, Vidmoly & Filemoon Çoklu Alternatifler |
 
 ---
 
