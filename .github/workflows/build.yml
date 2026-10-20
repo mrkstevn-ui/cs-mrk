@@ -1,0 +1,44 @@
+name: Build Plugins
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths-ignore:
+      - 'README.md'
+      - '.gitignore'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew || true
+
+      - name: Build Plugins (.cs3)
+        run: ./gradlew make --stacktrace
+
+      - name: Deploy to builds branch
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: builds
+          folder: build
+          clean: true
