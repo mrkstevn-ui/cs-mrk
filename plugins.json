@@ -333,6 +333,26 @@
         "name": "KultFilmler"
     },
     {
+        "iconUrl": "https://patronkale1.cfd/favicon.ico",
+        "fileHash": "sha256-5b5cf2b14b6b41bc8bdcf02db019c8c86bee43193080550df4566ab89cd69b8b",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 11336,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 1,
+        "internalName": "Patronspor",
+        "description": "Patronspor Canl\u0131 Ma\u00e7 ve Spor Kanallar\u0131",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/Patronspor.cs3",
+        "name": "Patronspor"
+    },
+    {
         "iconUrl": "https://rarefilmm.com/favicon.ico",
         "fileHash": "sha256-963774a04eb4b767b603f517aeb3a5556bce133c9c9a4227e5dba3015c282bda",
         "apiVersion": 1,
