@@ -1,13 +1,37 @@
 # Cloudstream TR (cs-mrk)
 
-Bu depo, Cloudstream 3 için güncel ve reklamsız çalışan Türkçe dizi/film sağlayıcılarını barındırır.
+Bu depo, Cloudstream 3 için güncel ve reklamsız çalışan Türkçe dizi, film, anime ve belgesel sağlayıcılarını barındırır.
 
 ## Cloudstream'e Ekleme
 
 1. Cloudstream uygulamasını açın.
 2. **Ayarlar (Settings) > Eklentiler (Extensions) > Depo Ekle (Add Repository)** bölümüne gidin.
-3. Şu bağlantıyı yapıştırın:
+3. Şu bağlantıyı ekleyin:
    ```text
    https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/plugins.json
    ```
-4. Eklenti listesinden **HDFilmcehennemi** sağlayıcısını yükleyin.
+4. Eklenti listesinden dilediğiniz sağlayıcıyı tek tıkla yükleyin.
+
+---
+
+## Aktif Sağlayıcılar
+
+| Sağlayıcı | Tür | Durum | Özellikler |
+| :--- | :--- | :--- | :--- |
+| **HDFilmcehennemi** | Film, Dizi | ✅ Aktif | Full HD Posterler, Özel Rhino Deobfuscation, ExoPlayer 3003 Korumalı |
+| **FilmModu** | Film | ✅ Aktif | Vidmixi AES-256 Deobfuscation, Türkçe/İngilizce Altyazı, Çift Ses |
+| **Dizigom** | Dizi, Film, Anime | ✅ Aktif | Pilavyer Player, Tüm Sezon ve Bölümler, Çift Kanal Ses |
+| **KültFilmler** | Film, Dizi | ✅ Aktif | Vidpapi FirePlayer HLS / Vidmoly Entegrasyonu |
+| **DiziBOX** | Dizi | ✅ Aktif | MolyStream Sheila 1080p M3U8, Hızlı Arama, Tüm Sezonlar |
+| **AnimeciX** | Anime, Film | ✅ Aktif | REST API, Doğrudan 1080p/720p/480p MP4 Akışı |
+| **ÇizgiMax** | Çizgi Film, Anime, Dizi | ✅ Aktif | NP-Resolve & Tau-Video 1080p Doğrudan MP4 / Vidmoly |
+| **DiziFilmizle** | Film, Dizi | ✅ Aktif | Next.js SSR Ayrıştırma, Vidmixi 1080p HLS ve Altyazı |
+| **BelgeselX** | Belgesel | ✅ Aktif | Zengin Belgesel Arşivi, Google Drive / MP4 Oynatıcı |
+
+---
+
+## Otomatik Domain Güncelleyici (Bot)
+
+Sitelerin alan adı (domain) engellemelerine ve adres değişikliklerine karşı otomatik bot devrededir:
+- **`scripts/update_domains.py`**: Tüm sağlayıcıların mevcut adreslerini HTTP yönlendirmeleri, ayna (mirror) adresler ve sayısal artış örüntüleriyle test eder.
+- **GitHub Actions (`.github/workflows/update_domains.yml`)**: Günde 2 kez otomatik veya istendiğinde manuel tetiklenerek değişen alan adlarını tespit eder, Kotlin kaynak kodunu günceller, eklenti sürümünü artırır ve otomatik olarak derleyip yayına alır.

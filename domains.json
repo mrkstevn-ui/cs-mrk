@@ -1,0 +1,114 @@
+{
+  "HDFilmCehennemi": {
+    "file": "HDFilmCehennemi/src/main/kotlin/com/turk/HDFilmCehennemi.kt",
+    "gradle": "HDFilmCehennemi/build.gradle.kts",
+    "current_url": "https://www.hdfilmcehennemi.nl",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://www.hdfilmcehennemi.nl",
+      "https://www.hdfilmcehennemi.cx",
+      "https://www.hdfilmcehennemi.top",
+      "https://www.hdfilmcehennemi.ws",
+      "https://www.hdfilmcehennemi.com"
+    ],
+    "verification_keyword": "hdfilmcehennemi"
+  },
+  "FilmModu": {
+    "file": "FilmModu/src/main/kotlin/com/turk/FilmModu.kt",
+    "gradle": "FilmModu/build.gradle.kts",
+    "current_url": "https://filmmodu.cc",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://filmmodu.cc",
+      "https://filmmodu.org",
+      "https://filmmodu.com",
+      "https://filmmodu1.com"
+    ],
+    "verification_keyword": "filmmodu"
+  },
+  "Dizigom": {
+    "file": "Dizigom/src/main/kotlin/com/turk/Dizigom.kt",
+    "gradle": "Dizigom/build.gradle.kts",
+    "current_url": "https://www.dizigom.news",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://www.dizigom.news",
+      "https://www.dizigom.tv",
+      "https://www.dizigom.com"
+    ],
+    "verification_keyword": "dizigom"
+  },
+  "KultFilmler": {
+    "file": "KultFilmler/src/main/kotlin/com/turk/KultFilmler.kt",
+    "gradle": "KultFilmler/build.gradle.kts",
+    "current_url": "https://kultfilmler.net",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://kultfilmler.net",
+      "https://kultfilmler.com",
+      "https://kultfilmler.org"
+    ],
+    "verification_keyword": "kült"
+  },
+  "DiziBox": {
+    "file": "DiziBox/src/main/kotlin/com/turk/DiziBox.kt",
+    "gradle": "DiziBox/build.gradle.kts",
+    "current_url": "https://www.dizibox.live",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://www.dizibox.live",
+      "https://www.dizibox.tv",
+      "https://www.dizibox.com",
+      "https://www.dizibox1.com"
+    ],
+    "verification_keyword": "dizibox"
+  },
+  "AnimeciX": {
+    "file": "AnimeciX/src/main/kotlin/com/turk/AnimeciX.kt",
+    "gradle": "AnimeciX/build.gradle.kts",
+    "current_url": "https://animecix.tv",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://animecix.tv",
+      "https://animecix.net",
+      "https://animecix.com"
+    ],
+    "verification_keyword": "animecix"
+  },
+  "CizgiMax": {
+    "file": "CizgiMax/src/main/kotlin/com/turk/CizgiMax.kt",
+    "gradle": "CizgiMax/build.gradle.kts",
+    "current_url": "https://cizgimax.online",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://cizgimax.online",
+      "https://cizgimax.org",
+      "https://cizgimax.com"
+    ],
+    "verification_keyword": "çizgimax"
+  },
+  "DiziFilmizle": {
+    "file": "DiziFilmizle/src/main/kotlin/com/turk/DiziFilmizle.kt",
+    "gradle": "DiziFilmizle/build.gradle.kts",
+    "current_url": "https://dizifilmizle.to",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://dizifilmizle.to",
+      "https://dizifilmizle.com",
+      "https://dizifilmizle.org"
+    ],
+    "verification_keyword": "dizifilmizle"
+  },
+  "BelgeselX": {
+    "file": "BelgeselX/src/main/kotlin/com/turk/BelgeselX.kt",
+    "gradle": "BelgeselX/build.gradle.kts",
+    "current_url": "https://belgeselx.com",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://belgeselx.com",
+      "https://belgeselx.net",
+      "https://belgeselx.org"
+    ],
+    "verification_keyword": "belgeselx"
+  }
+}

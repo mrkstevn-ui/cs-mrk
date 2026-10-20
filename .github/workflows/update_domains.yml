@@ -1,0 +1,40 @@
+name: Check and Update Domains
+
+on:
+  schedule:
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-domains:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Check and Update Domains
+        run: |
+          python3 scripts/update_domains.py
+
+      - name: Commit and Push if changed
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Domain changes detected. Committing and pushing..."
+            git add .
+            git commit -m "[Auto-Updater] Update rotating provider domains"
+            git push origin main
+          else
+            echo "No domain changes detected."
+          fi
