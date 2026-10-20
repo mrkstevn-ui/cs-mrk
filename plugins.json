@@ -191,6 +191,26 @@
         "name": "FilmModu"
     },
     {
+        "iconUrl": "https://www.fullhdfilmizlesene.now/favicon-32x32.png",
+        "fileHash": "sha256-46c35122ef0d06c407089dc83d57a4ef78c16521373d4155269b76476e2d1da2",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 13331,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "FullHDFilmizlesene",
+        "description": "FullHDFilmizlesene Film Sa\u011flay\u0131c\u0131",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/FullHDFilmizlesene.cs3",
+        "name": "FullHDFilmizlesene"
+    },
+    {
         "iconUrl": "https://www.hdfilmcehennemi.nl/dist/images/logo-light.svg",
         "fileHash": "sha256-ff7e12abc1c1a8a00133e8ad39abe1afc3f3149ccd4c7a25ec7f09b549040fd3",
         "apiVersion": 1,
