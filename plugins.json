@@ -150,6 +150,27 @@
         "name": "Dizigom"
     },
     {
+        "iconUrl": "https://dizipal1591.com/assets/favicon/favicon-32x32.png",
+        "fileHash": "sha256-e900349dde1bff9c48a284955f1b8b5a3d0a11d2985612fefc2db8ca7f78111d",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 17085,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "DiziPal",
+        "description": "DiziPal Dizi ve Film Sa\u011flay\u0131c\u0131",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/DiziPal.cs3",
+        "name": "DiziPal"
+    },
+    {
         "iconUrl": "https://filmmodu.cc/apple-touch-icon.png",
         "fileHash": "sha256-2bcf7b2655d42af225e7894bda782455a5b966a5de9e7712b064e6f5d24de3b1",
         "apiVersion": 1,
