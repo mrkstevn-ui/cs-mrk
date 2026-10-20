@@ -1,10 +1,117 @@
 [
     {
-        "iconUrl": "https://www.dizigom.news/apple-touch-icon.png",
-        "fileHash": "sha256-f4ffbd14fab8337b531712fc17807634ef74bb47ad488e7a9ce9cec2e5044a25",
+        "iconUrl": "https://animecix.tv/favicon.ico",
+        "fileHash": "sha256-5450f4022e79d6aa1e5b9b5b99e69e9b05e40536222561370577b93d6eb3bc9b",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
-        "fileSize": 16776,
+        "fileSize": 29258,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "Anime",
+            "AnimeMovie"
+        ],
+        "version": 1,
+        "internalName": "AnimeciX",
+        "description": "AnimeciX G\u00fcncel Anime Sa\u011flay\u0131c\u0131",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/AnimeciX.cs3",
+        "name": "AnimeciX"
+    },
+    {
+        "iconUrl": "https://belgeselx.com/favicon.ico",
+        "fileHash": "sha256-7489fd41584df8f4e6b0611070cfac1a9d3666ca66e294bc23e2d246fa3cce60",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 16114,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "Documentary",
+            "TvSeries",
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "BelgeselX",
+        "description": "BelgeselX T\u00fcrk\u00e7e Dublaj ve Altyaz\u0131l\u0131 HD Belgesel Sa\u011flay\u0131c\u0131",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/BelgeselX.cs3",
+        "name": "BelgeselX"
+    },
+    {
+        "iconUrl": "https://cizgimax.online/favicon.ico",
+        "fileHash": "sha256-1ae7ac35e381cc75251486dfd49eba07ddd7df6047d8ec9d987a38c38eecd1e0",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 25095,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "Cartoon",
+            "Anime",
+            "TvSeries",
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "CizgiMax",
+        "description": "\u00c7izgiMax \u00c7izgi Film, Anime ve Dizi Sa\u011flay\u0131c\u0131",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/CizgiMax.cs3",
+        "name": "CizgiMax"
+    },
+    {
+        "iconUrl": "https://www.dizibox.live/favicon.ico",
+        "fileHash": "sha256-608668fa3a0010687e114501d55a3d27bb2e2bea7072a760d0b03f7973f3b86f",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 17061,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "DiziBox",
+        "description": "DiziBOX G\u00fcncel Yabanc\u0131 Dizi Sa\u011flay\u0131c\u0131",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/DiziBox.cs3",
+        "name": "DiziBox"
+    },
+    {
+        "iconUrl": "https://dizifilmizle.to/favicon.ico",
+        "fileHash": "sha256-ce78e00ce52684cfeebdc607e9f3c67cfaa97196787801b6a157d61b4dbcfa23",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 21069,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "DiziFilmizle",
+        "description": "DiziFilmizle G\u00fcncel Film ve Dizi Sa\u011flay\u0131c\u0131",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/DiziFilmizle.cs3",
+        "name": "DiziFilmizle"
+    },
+    {
+        "iconUrl": "https://www.dizigom.news/apple-touch-icon.png",
+        "fileHash": "sha256-e176314780a3e7ed320158cffe5d1c4757f8b3d16e95be004034af1786fbed6c",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 16755,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -23,10 +130,10 @@
     },
     {
         "iconUrl": "https://filmmodu.cc/apple-touch-icon.png",
-        "fileHash": "sha256-8d50b2fa7b30c566dd9ec71cd95e6f2c0c9cd36606173b5233c3665d959cf2f9",
+        "fileHash": "sha256-2bcf7b2655d42af225e7894bda782455a5b966a5de9e7712b064e6f5d24de3b1",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
-        "fileSize": 15694,
+        "fileSize": 15692,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -43,10 +150,10 @@
     },
     {
         "iconUrl": "https://www.hdfilmcehennemi.nl/dist/images/logo-light.svg",
-        "fileHash": "sha256-8dad4fec765c9f076784c6027adc89c1fa20d453b2d9722203e1b25b283d41d9",
+        "fileHash": "sha256-ff7e12abc1c1a8a00133e8ad39abe1afc3f3149ccd4c7a25ec7f09b549040fd3",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
-        "fileSize": 18633,
+        "fileSize": 18563,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -60,5 +167,26 @@
         "description": "HDFilmcehennemi G\u00fcncel Sa\u011flay\u0131c\u0131",
         "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/HDFilmCehennemi.cs3",
         "name": "HDFilmCehennemi"
+    },
+    {
+        "iconUrl": "https://kultfilmler.net/wp-content/uploads/2020/05/cropped-favicon-192x192.png",
+        "fileHash": "sha256-74bb8da9b21a9c865544c391083c4731f0976c6d126676127586e9b99df7f7ac",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 18246,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "KultFilmler",
+        "description": "K\u00fcltFilmler Se\u00e7kin Film ve Dizi Sa\u011flay\u0131c\u0131",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/KultFilmler.cs3",
+        "name": "KultFilmler"
     }
 ]
