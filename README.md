@@ -31,6 +31,7 @@ Bu depo, Cloudstream 3 için güncel ve reklamsız çalışan Türkçe dizi, fil
 | **DiziPal** | Dizi, Film | ✅ Aktif | PBKDF2 HMAC-SHA512 & AES-256 Şifre Çözücü, DPlayer 1080p Master HLS |
 | **FullHDFilmizlesene** | Film | ✅ Aktif | ROT13 & RapidVid Deobfuscator, 1080p Çift Ses Master HLS |
 | **FilmKovası** | Film | ✅ Aktif | Base64 Player Ayrıştırıcı, Odnoklassniki (OK.ru) Çoklu Kalite MP4/HLS |
+| **HDFilmDelisi** | Film | ✅ Aktif | Doğrudan 1080p Full HD MP4 Akışı, Hızlı Arama, Zengin Arşiv |
 
 ---
 

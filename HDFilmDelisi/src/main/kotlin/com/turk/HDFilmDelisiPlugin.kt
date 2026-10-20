@@ -1,0 +1,12 @@
+package com.turk
+
+import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
+import com.lagradost.cloudstream3.plugins.Plugin
+import android.content.Context
+
+@CloudstreamPlugin
+class HDFilmDelisiPlugin: Plugin() {
+    override fun load(context: Context) {
+        registerMainAPI(HDFilmDelisi())
+    }
+}

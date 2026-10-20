@@ -160,5 +160,17 @@
       "https://filmkovasi.net"
     ],
     "verification_keyword": "filmkovası"
+  },
+  "HDFilmDelisi": {
+    "file": "HDFilmDelisi/src/main/kotlin/com/turk/HDFilmDelisi.kt",
+    "gradle": "HDFilmDelisi/build.gradle.kts",
+    "current_url": "https://hdfilmdelisi.one",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://hdfilmdelisi.one",
+      "https://hdfilmdelisi.com",
+      "https://hdfilmdelisi.org"
+    ],
+    "verification_keyword": "hdfilmdelisi"
   }
 }
