@@ -37,6 +37,7 @@ subprojects {
     }
 
     android {
+        namespace = "com.turk." + project.name.lowercase()
         defaultConfig {
             minSdk = 21
             compileSdkVersion(35)
