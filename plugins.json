@@ -1,5 +1,27 @@
 [
     {
+        "iconUrl": "https://www.dizigom.news/apple-touch-icon.png",
+        "fileHash": "sha256-f4ffbd14fab8337b531712fc17807634ef74bb47ad488e7a9ce9cec2e5044a25",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 16776,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "TvSeries",
+            "Movie",
+            "Anime"
+        ],
+        "version": 1,
+        "internalName": "Dizigom",
+        "description": "Dizigom G\u00fcncel Dizi ve Film Sa\u011flay\u0131c\u0131",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/Dizigom.cs3",
+        "name": "Dizigom"
+    },
+    {
         "iconUrl": "https://filmmodu.cc/apple-touch-icon.png",
         "fileHash": "sha256-8d50b2fa7b30c566dd9ec71cd95e6f2c0c9cd36606173b5233c3665d959cf2f9",
         "apiVersion": 1,
