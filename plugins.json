@@ -371,5 +371,46 @@
         "description": "RareFilmm - The Cave of Forgotten Films",
         "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/RareFilmm.cs3",
         "name": "RareFilmm"
+    },
+    {
+        "iconUrl": "https://www.setfilmizle.ltd/wp-content/themes/setfilm/assets/icons/favicon-32x32.png",
+        "fileHash": "sha256-03380abd01481830f70c7deb21b2a1a925ec450cdf38e01ce765b56114fc045e",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 16714,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "SetFilmIzle",
+        "description": "SetFilmIzle T\u00fcrk\u00e7e Dublaj ve Altyaz\u0131l\u0131 Film/Dizi",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/SetFilmIzle.cs3",
+        "name": "SetFilmIzle"
+    },
+    {
+        "iconUrl": "https://sezonlukdizi.cc/favicon.ico",
+        "fileHash": "sha256-5c77da589db6963fa4f263e934ae3b9002822cd9666e57bd3337b141243451fd",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 14730,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "SezonlukDizi",
+        "description": "SezonlukDizi 1080p Yabanc\u0131 Dizi Ar\u015fivi",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/SezonlukDizi.cs3",
+        "name": "SezonlukDizi"
     }
 ]
