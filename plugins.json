@@ -1,10 +1,10 @@
 [
     {
         "iconUrl": "https://www.hdfilmcehennemi.nl/dist/images/logo-light.svg",
-        "fileHash": "sha256-0b2b2fa809e93f40ecabb7400036d32c1fc11a542e44988684506ba2a727c14a",
+        "fileHash": "sha256-c06de9ce17f9f05edbf57b1c7d0c1537c3bfac2a0568783819885df595cb7481",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
-        "fileSize": 14757,
+        "fileSize": 17380,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -13,7 +13,7 @@
         "tvTypes": [
             "Movie"
         ],
-        "version": 2,
+        "version": 3,
         "internalName": "HDFilmCehennemi",
         "description": "HDFilmcehennemi G\u00fcncel Sa\u011flay\u0131c\u0131",
         "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/HDFilmCehennemi.cs3",
