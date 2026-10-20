@@ -3,6 +3,7 @@ package com.turk
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
 import org.json.JSONObject
 import org.json.JSONArray
 import org.mozilla.javascript.Context
@@ -20,14 +21,40 @@ class HDFilmCehennemi : MainAPI() {
         "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
 
-    // Afiş kalitesini en yüksek çözünürlüğe (/images/poster/) çeviren fonksiyon
+    // Afişleri yüksek çözünürlüğe çeviren fonksiyon
     private fun fixPosterUrl(url: String?): String? {
-        if (url.isNullOrEmpty()) return null
+        if (url.isNullOrEmpty() || url.startsWith("data:")) return null
         return url.replace("/images/thumb/poster/", "/images/poster/")
                   .replace("/images/list/poster/", "/images/poster/")
     }
 
-    // 1. ZENGİN ANA SAYFA KATEGORİLERİ
+    // HTML kartından SearchResponse üreten yardımcı fonksiyon (Lazy-load uyumlu)
+    private fun toSearchResult(element: Element): SearchResponse? {
+        val link = element.attr("href")
+        if (link.isEmpty() || link.endsWith("/film-robotu-1/")) return null
+
+        val img = element.selectFirst("img") ?: return null
+        val title = img.attr("alt").trim().takeIf { it.isNotEmpty() } ?: return null
+
+        val rawPoster = img.attr("data-src").ifEmpty {
+            img.attr("src").takeIf { !it.startsWith("data:") } ?: ""
+        }
+        val poster = fixPosterUrl(rawPoster)
+        val isSeries = link.contains("/dizi/")
+        val type = if (isSeries) TvType.TvSeries else TvType.Movie
+
+        return if (isSeries) {
+            newTvSeriesSearchResponse(title, link, type) {
+                this.posterUrl = poster
+            }
+        } else {
+            newMovieSearchResponse(title, link, type) {
+                this.posterUrl = poster
+            }
+        }
+    }
+
+    // 1. ANA SAYFA KATEGORİLERİ
     override val mainPage = mainPageOf(
         mainUrl to "Son Eklenen Filmler",
         "$mainUrl/yabancidiziizle-5/" to "Yeni Eklenen Diziler",
@@ -41,17 +68,10 @@ class HDFilmCehennemi : MainAPI() {
         val targetUrl = if (page <= 1) request.data else "${request.data.removeSuffix("/")}/page/$page/"
         val doc = app.get(targetUrl, headers = standardHeaders).document
 
-        val movies = doc.select("a[href^=\"https://www.hdfilmcehennemi.nl/\"]").filter {
-            it.selectFirst("img[src*=\"poster\"]") != null
+        val movies = doc.select("a[href^=\"$mainUrl/\"]").filter {
+            it.selectFirst("img") != null && it.html().contains("poster")
         }.mapNotNull { element ->
-            val link = element.attr("href")
-            val img = element.selectFirst("img")
-            val title = img?.attr("alt") ?: return@mapNotNull null
-            val rawPoster = img.attr("src")
-
-            newMovieSearchResponse(title, link, TvType.Movie) {
-                this.posterUrl = fixPosterUrl(rawPoster)
-            }
+            toSearchResult(element)
         }.distinctBy { it.url }
 
         return newHomePageResponse(request.name, movies)
@@ -77,11 +97,23 @@ class HDFilmCehennemi : MainAPI() {
                 val link = doc.selectFirst("a")?.attr("href") ?: continue
                 val title = doc.selectFirst("h4.title")?.text() 
                     ?: doc.selectFirst("img")?.attr("alt") ?: "Film"
-                val rawPoster = doc.selectFirst("img")?.attr("src")
+                val img = doc.selectFirst("img")
+                val rawPoster = img?.attr("data-src")?.ifEmpty {
+                    img.attr("src").takeIf { !it.startsWith("data:") } ?: ""
+                } ?: ""
 
-                searchResponses.add(newMovieSearchResponse(title, link, TvType.Movie) {
-                    this.posterUrl = fixPosterUrl(rawPoster)
-                })
+                val isSeries = link.contains("/dizi/")
+                val type = if (isSeries) TvType.TvSeries else TvType.Movie
+
+                if (isSeries) {
+                    searchResponses.add(newTvSeriesSearchResponse(title, link, type) {
+                        this.posterUrl = fixPosterUrl(rawPoster)
+                    })
+                } else {
+                    searchResponses.add(newMovieSearchResponse(title, link, type) {
+                        this.posterUrl = fixPosterUrl(rawPoster)
+                    })
+                }
             }
             searchResponses
         } catch (e: Exception) {
@@ -89,15 +121,41 @@ class HDFilmCehennemi : MainAPI() {
         }
     }
 
-    // 3. FİLM DETAY SAYFASI
+    // 3. FİLM VE DİZİ DETAY SAYFASI
     override suspend fun load(url: String): LoadResponse {
         val doc = app.get(url, headers = standardHeaders).document
         val title = doc.selectFirst("h1")?.text()?.replace(" izle", "")?.trim() ?: "Film"
-        val rawPoster = doc.selectFirst("div.poster img, img.poster")?.attr("src")
+        val img = doc.selectFirst("div.poster img, img.poster")
+        val rawPoster = img?.attr("data-src")?.ifEmpty {
+            img.attr("src").takeIf { !it.startsWith("data:") } ?: ""
+        } ?: ""
+        val poster = fixPosterUrl(rawPoster)
         val plot = doc.selectFirst("article.post-content, div.film-summary, p.description")?.text()
 
+        val isSeries = url.contains("/dizi/") && !url.contains("/bolum-")
+
+        if (isSeries) {
+            val episodes = mutableListOf<Episode>()
+            val epLinks = doc.select("a[href*=\"/sezon-\"][href*=\"/bolum-\"]")
+            for (ep in epLinks) {
+                val epHref = fixUrl(ep.attr("href"))
+                val epText = ep.text().trim()
+                val sNum = Regex("""sezon-(\d+)""").find(epHref)?.groupValues?.get(1)?.toIntOrNull() ?: 1
+                val eNum = Regex("""bolum-(\d+)""").find(epHref)?.groupValues?.get(1)?.toIntOrNull() ?: 1
+                episodes.add(newEpisode(epHref) {
+                    this.name = epText.ifEmpty { "$sNum. Sezon $eNum. Bölüm" }
+                    this.season = sNum
+                    this.episode = eNum
+                })
+            }
+            return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.distinctBy { it.data }) {
+                this.posterUrl = poster
+                this.plot = plot
+            }
+        }
+
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = fixPosterUrl(rawPoster)
+            this.posterUrl = poster
             this.plot = plot
         }
     }
@@ -195,13 +253,12 @@ class HDFilmCehennemi : MainAPI() {
         }
 
         if (deobfuscatorScript.isNullOrEmpty()) {
-            // targetVar içeren herhangi bir script
             deobfuscatorScript = scripts.find { it.data().contains(targetVar) }?.data()
         }
 
         if (deobfuscatorScript.isNullOrEmpty()) return
 
-        // 4. Mozilla Rhino ile güvenli JavaScript ortamında akış bağlantısını çöz
+        // 4. Mozilla Rhino ile güvenli JavaScript ortamında ISO-8859-1 ile binary atob çözümü
         val rhino = Context.enter()
         rhino.optimizationLevel = -1
         try {
