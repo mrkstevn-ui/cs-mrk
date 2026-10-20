@@ -192,7 +192,7 @@ class HDFilmCehennemi : MainAPI() {
                 val playerUrl = iframeDoc.selectFirst("iframe")?.attr("data-src")
                     ?: iframeDoc.selectFirst("iframe")?.attr("src") ?: continue
 
-                if (playerUrl.contains("hdfilmcehennemi.mobi/video/embed/")) {
+                if (playerUrl.contains("hdfilmcehennemi.mobi/video/embed/") || playerUrl.contains("/rplayer/")) {
                     resolveMobiEmbed(playerUrl, sourceLabel, subtitleCallback, callback)
                 } else {
                     loadExtractor(playerUrl, data, subtitleCallback, callback)
@@ -204,7 +204,7 @@ class HDFilmCehennemi : MainAPI() {
         return true
     }
 
-    // hdfilmcehennemi.mobi oynatıcı şifresini çözüp doğrudan 1080p master.txt (HLS) akışını çeken motor
+    // hdfilmcehennemi.mobi ve rplayer oynatıcı şifresini çözen motor
     private suspend fun resolveMobiEmbed(
         embedUrl: String,
         label: String,
@@ -225,7 +225,8 @@ class HDFilmCehennemi : MainAPI() {
                     val subFile = trackObj.optString("file")
                     val subLabel = trackObj.optString("label").ifEmpty { "Altyazı" }
                     if (subFile.isNotEmpty()) {
-                        subtitleCallback.invoke(SubtitleFile(subLabel, fixUrl(subFile)))
+                        val fullSubUrl = if (subFile.startsWith("http")) subFile else fixUrl(subFile)
+                        subtitleCallback.invoke(SubtitleFile(subLabel, fullSubUrl))
                     }
                 }
             } catch (e: Exception) {
@@ -233,27 +234,33 @@ class HDFilmCehennemi : MainAPI() {
             }
         }
 
-        // 2. Sources içindeki değişken adını bul (sources: [{file: VAR_NAME, type: "hls"}])
+        // 2. Sources içindeki değişken adını bul (sources: [{file: VAR_NAME}])
         val fileVarPattern = Pattern.compile("sources:\\s*\\[\\{\\s*file:\\s*([a-zA-Z0-9_]+)")
         val fileVarMatcher = fileVarPattern.matcher(embedHtml)
         if (!fileVarMatcher.find()) return
         val targetVar = fileVarMatcher.group(1)
 
-        // 3. Şifre çözücü script bloğunu bul
+        // 3. Şifre çözücü script bloğunu bul (Gerekirse packer'ı aç)
         val doc = Jsoup.parse(embedHtml)
         val scripts = doc.select("script")
         var deobfuscatorScript: String? = null
 
         for (s in scripts) {
-            val scriptContent = s.data()
-            if (scriptContent.contains("join(") && scriptContent.contains(".split(") && scriptContent.contains(targetVar)) {
-                deobfuscatorScript = scriptContent
+            var content = s.data()
+            if (content.contains("eval(function(")) {
+                content = getAndUnpack(content)
+            }
+            if (content.contains("join(") && (content.contains(".split(") || content.contains("charCodeAt")) && content.contains(targetVar)) {
+                deobfuscatorScript = content
                 break
             }
         }
 
         if (deobfuscatorScript.isNullOrEmpty()) {
             deobfuscatorScript = scripts.find { it.data().contains(targetVar) }?.data()
+            if (deobfuscatorScript?.contains("eval(function(") == true) {
+                deobfuscatorScript = getAndUnpack(deobfuscatorScript!!)
+            }
         }
 
         if (deobfuscatorScript.isNullOrEmpty()) return
@@ -278,17 +285,45 @@ class HDFilmCehennemi : MainAPI() {
             val resolvedUrl = scope.get(targetVar, scope)?.toString()
 
             if (!resolvedUrl.isNullOrEmpty() && resolvedUrl.startsWith("http")) {
+                val refererUrl = if (embedUrl.contains("mobi")) "https://hdfilmcehennemi.mobi/" else "$mainUrl/"
+                val streamHeaders = mapOf(
+                    "Referer" to refererUrl,
+                    "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Origin" to refererUrl.removeSuffix("/")
+                )
+
+                // ExoPlayer'ın HLS olduğunu kesin tanıması için ?ext=.m3u8 ekliyoruz (Error 3003 engelleyici)
+                val hlsUrl = if (resolvedUrl.contains("?")) "$resolvedUrl&ext=.m3u8" else "$resolvedUrl?ext=.m3u8"
+
                 callback.invoke(
                     newExtractorLink(
                         source = name,
                         name = "$name ($label - 1080p HD)",
-                        url = resolvedUrl,
-                        type = INFER_TYPE
+                        url = hlsUrl,
+                        type = ExtractorLinkType.M3U8
                     ) {
-                        this.referer = "https://hdfilmcehennemi.mobi/"
+                        this.referer = refererUrl
                         this.quality = Qualities.P1080.value
+                        this.headers = streamHeaders
                     }
                 )
+
+                // master.txt split audio içeren oynatıcılar için alternatif doğrudan video kanalı
+                if (resolvedUrl.contains("master.txt")) {
+                    val directSublist = resolvedUrl.substringBeforeLast("/") + "/sublist_2.txt?ext=.m3u8"
+                    callback.invoke(
+                        newExtractorLink(
+                            source = name,
+                            name = "$name ($label - Hızlı Akış)",
+                            url = directSublist,
+                            type = ExtractorLinkType.M3U8
+                        ) {
+                            this.referer = refererUrl
+                            this.quality = Qualities.P1080.value
+                            this.headers = streamHeaders
+                        }
+                    )
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
