@@ -28,6 +28,7 @@ Bu depo, Cloudstream 3 için güncel ve reklamsız çalışan Türkçe dizi, fil
 | **DiziFilmizle** | Film, Dizi | ✅ Aktif | Next.js SSR Ayrıştırma, Vidmixi 1080p HLS ve Altyazı |
 | **BelgeselX** | Belgesel | ✅ Aktif | Zengin Belgesel Arşivi, Google Drive / MP4 Oynatıcı |
 | **DiziGecesi** | Dizi, Film | ✅ Aktif | AJAX Embed Ayrıştırıcı, Vidmoly & Filemoon Çoklu Alternatifler |
+| **DiziPal** | Dizi, Film | ✅ Aktif | PBKDF2 HMAC-SHA512 & AES-256 Şifre Çözücü, DPlayer 1080p Master HLS |
 
 ---
 

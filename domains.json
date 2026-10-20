@@ -122,5 +122,18 @@
       "https://dizigecesi.net"
     ],
     "verification_keyword": "dizigecesi"
+  },
+  "DiziPal": {
+    "file": "DiziPal/src/main/kotlin/com/turk/DiziPal.kt",
+    "gradle": "DiziPal/build.gradle.kts",
+    "current_url": "https://dizipal1591.com",
+    "strategy": "numeric_increment",
+    "pattern": "https://dizipal{num}.com",
+    "mirrors": [
+      "https://dizipal1591.com",
+      "https://dizipal1592.com",
+      "https://dizipal1593.com"
+    ],
+    "verification_keyword": "dizipal"
   }
 }
