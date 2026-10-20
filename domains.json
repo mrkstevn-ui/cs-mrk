@@ -223,5 +223,27 @@
       "https://patronsports2.cfd"
     ],
     "verification_keyword": "patron"
+  },
+  "SetFilmIzle": {
+    "file": "SetFilmIzle/src/main/kotlin/com/turk/SetFilmIzle.kt",
+    "gradle": "SetFilmIzle/build.gradle.kts",
+    "current_url": "https://www.setfilmizle.ltd",
+    "strategy": "redirect_follow",
+    "mirrors": [
+      "https://www.setfilmizle.ltd",
+      "https://setfilmizle.ltd"
+    ],
+    "verification_keyword": "setfilm"
+  },
+  "SezonlukDizi": {
+    "file": "SezonlukDizi/src/main/kotlin/com/turk/SezonlukDizi.kt",
+    "gradle": "SezonlukDizi/build.gradle.kts",
+    "current_url": "https://sezonlukdizi.cc",
+    "strategy": "redirect_follow",
+    "mirrors": [
+      "https://sezonlukdizi.cc",
+      "https://sezonlukdizi.vip"
+    ],
+    "verification_keyword": "sezonluk"
   }
 }

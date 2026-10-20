@@ -36,6 +36,8 @@ Bu depo, Cloudstream 3 için güncel ve reklamsız çalışan Türkçe dizi, fil
 | **DiziYou** | Dizi, Film | ✅ Aktif | KSDPictures 1080p Master M3U8, Tüm Sezon ve Bölümler, Çoklu Altyazı |
 | **İnatTV** | Canlı TV, Spor, Ulusal | ✅ Aktif | Günün Canlı Maçları, Yurtdışı Spor (Euro Sport, NBA TV), Ulusal ve Spor Kanalları HLS |
 | **Patronspor** | Canlı TV, Spor, Ulusal | ✅ Aktif | 39 Canlı Spor & Ulusal Kanal, Canlı Maçlar, Otomatik Domain API Çözümleme |
+| **SetFilmIzle** | Dizi, Film | ✅ Aktif | FastPlay XOR Şifre Çözücü & FNV-1a Hash Doğrulayıcı, 1080p Master HLS, Çift Ses ve Altyazı |
+| **SezonlukDizi** | Yabancı Dizi | ✅ Aktif | Kapsamlı Yabancı Dizi Arşivi, AJAX Alternatif Çözümleyici, Filemoon & Vidmoly 1080p |
 
 ---
 
