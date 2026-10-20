@@ -251,6 +251,26 @@
         "name": "HDFilmCehennemi"
     },
     {
+        "iconUrl": "https://hdfilmdelisi.one/og-image.jpg",
+        "fileHash": "sha256-121414bade4f6c504ee4a63940a7782d082082c2520b4ae175fdadbbacd2cc7f",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 12449,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "HDFilmDelisi",
+        "description": "HDFilmDelisi Film Sa\u011flay\u0131c\u0131",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/HDFilmDelisi.cs3",
+        "name": "HDFilmDelisi"
+    },
+    {
         "iconUrl": "https://kultfilmler.net/wp-content/uploads/2020/05/cropped-favicon-192x192.png",
         "fileHash": "sha256-74bb8da9b21a9c865544c391083c4731f0976c6d126676127586e9b99df7f7ac",
         "apiVersion": 1,
