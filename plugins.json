@@ -107,6 +107,27 @@
         "name": "DiziFilmizle"
     },
     {
+        "iconUrl": "https://dizigecesi.com/public/data/favicon.ico",
+        "fileHash": "sha256-fa21eb18412f86579feac570c9dfd1c4e44dcc5fc9c7cbb771969f0087a74c84",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
+        "fileSize": 15134,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Custom"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "DiziGecesi",
+        "description": "DiziGecesi Dizi ve Film Sa\u011flay\u0131c\u0131",
+        "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/DiziGecesi.cs3",
+        "name": "DiziGecesi"
+    },
+    {
         "iconUrl": "https://www.dizigom.news/apple-touch-icon.png",
         "fileHash": "sha256-e176314780a3e7ed320158cffe5d1c4757f8b3d16e95be004034af1786fbed6c",
         "apiVersion": 1,
