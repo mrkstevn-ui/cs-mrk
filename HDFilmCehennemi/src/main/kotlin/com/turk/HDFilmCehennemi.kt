@@ -4,36 +4,60 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
 import org.json.JSONObject
+import org.json.JSONArray
+import org.mozilla.javascript.Context
+import org.mozilla.javascript.Scriptable
+import java.util.regex.Pattern
 
 class HDFilmCehennemi : MainAPI() {
     override var mainUrl = "https://www.hdfilmcehennemi.nl"
     override var name = "HDFilmcehennemi"
     override val hasMainPage = true
     override var lang = "tr"
-    override val supportedTypes = setOf(TvType.Movie)
+    override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
 
     private val standardHeaders = mapOf(
         "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
 
+    // Afiş kalitesini en yüksek çözünürlüğe (/images/poster/) çeviren fonksiyon
+    private fun fixPosterUrl(url: String?): String? {
+        if (url.isNullOrEmpty()) return null
+        return url.replace("/images/thumb/poster/", "/images/poster/")
+                  .replace("/images/list/poster/", "/images/poster/")
+    }
+
+    // 1. ZENGİN ANA SAYFA KATEGORİLERİ
+    override val mainPage = mainPageOf(
+        mainUrl to "Son Eklenen Filmler",
+        "$mainUrl/yabancidiziizle-5/" to "Yeni Eklenen Diziler",
+        "$mainUrl/category/tavsiye-filmler-izle2/" to "Tavsiye Edilen Filmler",
+        "$mainUrl/imdb-7-puan-uzeri-filmler-2/" to "IMDb 7+ Filmler",
+        "$mainUrl/dil/turkce-dublajli-film-izleyin-6/" to "Türkçe Dublaj Filmler",
+        "$mainUrl/dil/turkce-altyazili-filmleri-izleme-sitesi-3/" to "Türkçe Altyazılı Filmler"
+    )
+
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val doc = app.get(mainUrl, headers = standardHeaders).document
+        val targetUrl = if (page <= 1) request.data else "${request.data.removeSuffix("/")}/page/$page/"
+        val doc = app.get(targetUrl, headers = standardHeaders).document
+
         val movies = doc.select("a[href^=\"https://www.hdfilmcehennemi.nl/\"]").filter {
             it.selectFirst("img[src*=\"poster\"]") != null
         }.mapNotNull { element ->
             val link = element.attr("href")
             val img = element.selectFirst("img")
             val title = img?.attr("alt") ?: return@mapNotNull null
-            val poster = img.attr("src")
+            val rawPoster = img.attr("src")
 
             newMovieSearchResponse(title, link, TvType.Movie) {
-                this.posterUrl = poster
+                this.posterUrl = fixPosterUrl(rawPoster)
             }
         }.distinctBy { it.url }
 
-        return newHomePageResponse("Son Eklenenler", movies)
+        return newHomePageResponse(request.name, movies)
     }
 
+    // 2. ARAMA MOTORU
     override suspend fun search(query: String): List<SearchResponse> {
         val searchUrl = "$mainUrl/search?q=$query"
         val searchHeaders = standardHeaders + mapOf(
@@ -53,10 +77,10 @@ class HDFilmCehennemi : MainAPI() {
                 val link = doc.selectFirst("a")?.attr("href") ?: continue
                 val title = doc.selectFirst("h4.title")?.text() 
                     ?: doc.selectFirst("img")?.attr("alt") ?: "Film"
-                val poster = doc.selectFirst("img")?.attr("src")
+                val rawPoster = doc.selectFirst("img")?.attr("src")
 
                 searchResponses.add(newMovieSearchResponse(title, link, TvType.Movie) {
-                    this.posterUrl = poster
+                    this.posterUrl = fixPosterUrl(rawPoster)
                 })
             }
             searchResponses
@@ -65,18 +89,20 @@ class HDFilmCehennemi : MainAPI() {
         }
     }
 
+    // 3. FİLM DETAY SAYFASI
     override suspend fun load(url: String): LoadResponse {
         val doc = app.get(url, headers = standardHeaders).document
         val title = doc.selectFirst("h1")?.text()?.replace(" izle", "")?.trim() ?: "Film"
-        val poster = doc.selectFirst("div.poster img, img.poster")?.attr("src")
+        val rawPoster = doc.selectFirst("div.poster img, img.poster")?.attr("src")
         val plot = doc.selectFirst("article.post-content, div.film-summary, p.description")?.text()
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
+            this.posterUrl = fixPosterUrl(rawPoster)
             this.plot = plot
         }
     }
 
+    // 4. CANLI VİDEO AKIŞI ÇÖZÜCÜ (Deobfuscator & HLS Extractor)
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
@@ -88,6 +114,7 @@ class HDFilmCehennemi : MainAPI() {
 
         for (btn in videoButtons) {
             val videoId = btn.attr("data-video").trim()
+            val sourceLabel = btn.text().trim().ifEmpty { "Varsayılan" }
             if (videoId.isEmpty() || videoId == "0") continue
 
             val apiVideoUrl = "$mainUrl/video/$videoId/"
@@ -100,20 +127,115 @@ class HDFilmCehennemi : MainAPI() {
             try {
                 val responseText = app.get(apiVideoUrl, headers = videoHeaders).text
                 val json = JSONObject(responseText)
-                if (json.optBoolean("success")) {
-                    val iframeHtml = json.getJSONObject("data").getString("html")
-                    val iframeDoc = Jsoup.parse(iframeHtml)
-                    val playerUrl = iframeDoc.selectFirst("iframe")?.attr("data-src")
-                        ?: iframeDoc.selectFirst("iframe")?.attr("src")
+                if (!json.optBoolean("success")) continue
 
-                    if (!playerUrl.isNullOrEmpty()) {
-                        loadExtractor(playerUrl, data, subtitleCallback, callback)
-                    }
+                val iframeHtml = json.getJSONObject("data").getString("html")
+                val iframeDoc = Jsoup.parse(iframeHtml)
+                val playerUrl = iframeDoc.selectFirst("iframe")?.attr("data-src")
+                    ?: iframeDoc.selectFirst("iframe")?.attr("src") ?: continue
+
+                if (playerUrl.contains("hdfilmcehennemi.mobi/video/embed/")) {
+                    resolveMobiEmbed(playerUrl, sourceLabel, subtitleCallback, callback)
+                } else {
+                    loadExtractor(playerUrl, data, subtitleCallback, callback)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
         return true
+    }
+
+    // hdfilmcehennemi.mobi oynatıcı şifresini çözüp doğrudan 1080p master.txt (HLS) akışını çeken motor
+    private suspend fun resolveMobiEmbed(
+        embedUrl: String,
+        label: String,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ) {
+        val embedHtml = app.get(embedUrl, referer = "$mainUrl/").text
+
+        // 1. Altyazıları ayıkla
+        val tracksPattern = Pattern.compile("tracks:\\s*\\[(.*?)\\]", Pattern.DOTALL)
+        val tracksMatcher = tracksPattern.matcher(embedHtml)
+        if (tracksMatcher.find()) {
+            val tracksJsonStr = "[" + tracksMatcher.group(1) + "]"
+            try {
+                val tracksArray = JSONArray(tracksJsonStr)
+                for (i in 0 until tracksArray.length()) {
+                    val trackObj = tracksArray.getJSONObject(i)
+                    val subFile = trackObj.optString("file")
+                    val subLabel = trackObj.optString("label").ifEmpty { "Altyazı" }
+                    if (subFile.isNotEmpty()) {
+                        subtitleCallback.invoke(SubtitleFile(subLabel, fixUrl(subFile)))
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        // 2. Sources içindeki değişken adını bul (sources: [{file: VAR_NAME, type: "hls"}])
+        val fileVarPattern = Pattern.compile("sources:\\s*\\[\\{\\s*file:\\s*([a-zA-Z0-9_]+)")
+        val fileVarMatcher = fileVarPattern.matcher(embedHtml)
+        if (!fileVarMatcher.find()) return
+        val targetVar = fileVarMatcher.group(1)
+
+        // 3. Şifre çözücü script bloğunu bul
+        val doc = Jsoup.parse(embedHtml)
+        val scripts = doc.select("script")
+        var deobfuscatorScript: String? = null
+
+        for (s in scripts) {
+            val scriptContent = s.data()
+            if (scriptContent.contains("join(") && scriptContent.contains(".split(") && scriptContent.contains(targetVar)) {
+                deobfuscatorScript = scriptContent
+                break
+            }
+        }
+
+        if (deobfuscatorScript.isNullOrEmpty()) {
+            // targetVar içeren herhangi bir script
+            deobfuscatorScript = scripts.find { it.data().contains(targetVar) }?.data()
+        }
+
+        if (deobfuscatorScript.isNullOrEmpty()) return
+
+        // 4. Mozilla Rhino ile güvenli JavaScript ortamında akış bağlantısını çöz
+        val rhino = Context.enter()
+        rhino.optimizationLevel = -1
+        try {
+            val scope: Scriptable = rhino.initStandardObjects()
+            val polyfill = """
+                var atob = function(str) {
+                    var bytes = android.util.Base64.decode(str, 0);
+                    return "" + new java.lang.String(bytes, java.nio.charset.StandardCharsets.ISO_8859_1);
+                };
+                var btoa = function(str) {
+                    var bytes = new java.lang.String(str).getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+                    return "" + android.util.Base64.encodeToString(bytes, 2).trim();
+                };
+            """.trimIndent()
+
+            rhino.evaluateString(scope, polyfill + "\n" + deobfuscatorScript, "decoder", 1, null)
+            val resolvedUrl = scope.get(targetVar, scope)?.toString()
+
+            if (!resolvedUrl.isNullOrEmpty() && resolvedUrl.startsWith("http")) {
+                callback.invoke(
+                    ExtractorLink(
+                        source = name,
+                        name = "$name ($label - 1080p HD)",
+                        url = resolvedUrl,
+                        referer = "https://hdfilmcehennemi.mobi/",
+                        quality = Qualities.P1080.value,
+                        type = INFER_TYPE
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            Context.exit()
+        }
     }
 }

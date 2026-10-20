@@ -72,6 +72,7 @@ subprojects {
         implementation("com.github.Blatzar:NiceHttp:0.4.11")
         implementation("org.jsoup:jsoup:1.18.3")
         implementation("org.json:json:20240303")
+        implementation("org.mozilla:rhino:1.7.15")
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.16.0")
     }
 }
