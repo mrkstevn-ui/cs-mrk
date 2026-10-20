@@ -33,6 +33,7 @@ Bu depo, Cloudstream 3 için güncel ve reklamsız çalışan Türkçe dizi, fil
 | **FilmKovası** | Film | ✅ Aktif | Base64 Player Ayrıştırıcı, Odnoklassniki (OK.ru) Çoklu Kalite MP4/HLS |
 | **HDFilmDelisi** | Film | ✅ Aktif | Doğrudan 1080p Full HD MP4 Akışı, Hızlı Arama, Zengin Arşiv |
 | **RareFilmm** | Film | ✅ Aktif | Nadir & Klasik Dünya Sineması Arşivi, OK.ru 1080p/720p Oynatıcı |
+| **DiziYou** | Dizi, Film | ✅ Aktif | KSDPictures 1080p Master M3U8, Tüm Sezon ve Bölümler, Çoklu Altyazı |
 
 ---
 

@@ -184,5 +184,17 @@
       "https://rarefilmm.org"
     ],
     "verification_keyword": "rarefilmm"
+  },
+  "DiziYou": {
+    "file": "DiziYou/src/main/kotlin/com/turk/DiziYou.kt",
+    "gradle": "DiziYou/build.gradle.kts",
+    "current_url": "https://diziyou.net",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://diziyou.net",
+      "https://diziyou.org",
+      "https://diziyou.com"
+    ],
+    "verification_keyword": "diziyou"
   }
 }
