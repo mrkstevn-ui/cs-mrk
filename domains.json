@@ -210,5 +210,18 @@
       "https://patronsports2.cfd"
     ],
     "verification_keyword": "inat"
+  },
+  "Patronspor": {
+    "file": "Patronspor/src/main/kotlin/com/turk/Patronspor.kt",
+    "gradle": "Patronspor/build.gradle.kts",
+    "current_url": "https://patronkale1.cfd",
+    "strategy": "numeric_increment",
+    "pattern": "https://patronkale{num}.cfd",
+    "mirrors": [
+      "https://patronkale1.cfd",
+      "https://patronkale2.cfd",
+      "https://patronsports2.cfd"
+    ],
+    "verification_keyword": "patron"
   }
 }
