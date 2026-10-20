@@ -172,5 +172,17 @@
       "https://hdfilmdelisi.org"
     ],
     "verification_keyword": "hdfilmdelisi"
+  },
+  "RareFilmm": {
+    "file": "RareFilmm/src/main/kotlin/com/turk/RareFilmm.kt",
+    "gradle": "RareFilmm/build.gradle.kts",
+    "current_url": "https://rarefilmm.com",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://rarefilmm.com",
+      "https://rarefilmm.net",
+      "https://rarefilmm.org"
+    ],
+    "verification_keyword": "rarefilmm"
   }
 }
