@@ -7,7 +7,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
 class KultFilmler : MainAPI() {
-    override var mainUrl = "https://kultfilmler.net"
+    override var mainUrl = "https://kultfilmler.org"
     override var name = "KültFilmler"
     override val hasMainPage = true
     override var lang = "tr"
