@@ -200,7 +200,7 @@
   "InatTV": {
     "file": "TurkProviders/src/InatTV.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://inattv1326.xyz",
+    "current_url": "https://inattv1327.xyz",
     "strategy": "numeric_increment",
     "pattern": "https://inattv{num}.xyz",
     "mirrors": [
@@ -214,7 +214,7 @@
   "Patronspor": {
     "file": "TurkProviders/src/Patronspor.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://patronkale1.cfd",
+    "current_url": "https://patronspor.is",
     "strategy": "numeric_increment",
     "pattern": "https://patronkale{num}.cfd",
     "mirrors": [
