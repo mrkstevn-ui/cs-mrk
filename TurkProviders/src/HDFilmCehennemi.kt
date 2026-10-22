@@ -22,7 +22,7 @@ class HDFilmCehennemi : MainAPI() {
     )
 
     // Afişleri yüksek çözünürlüğe çeviren fonksiyon
-    private fun fixPosterUrl(url: String?): String? {
+    private fun fixHdPosterUrl(url: String?): String? {
         if (url.isNullOrEmpty() || url.startsWith("data:")) return null
         return url.replace("/images/thumb/poster/", "/images/poster/")
                   .replace("/images/list/poster/", "/images/poster/")
@@ -36,20 +36,17 @@ class HDFilmCehennemi : MainAPI() {
         val img = element.selectFirst("img") ?: return null
         val title = img.attr("alt").trim().takeIf { it.isNotEmpty() } ?: return null
 
-        val rawPoster = img.attr("data-src").ifEmpty {
-            img.attr("src").takeIf { !it.startsWith("data:") } ?: ""
-        }
-        val poster = fixPosterUrl(rawPoster)
+        val poster = fixHdPosterUrl(cleanPosterUrl(img, mainUrl))
         val isSeries = link.contains("/dizi/")
         val type = if (isSeries) TvType.TvSeries else TvType.Movie
 
         return if (isSeries) {
             newTvSeriesSearchResponse(title, link, type) {
-                this.posterUrl = poster
+                addPoster(poster, mainUrl)
             }
         } else {
             newMovieSearchResponse(title, link, type) {
-                this.posterUrl = poster
+                addPoster(poster, mainUrl)
             }
         }
     }
@@ -98,20 +95,18 @@ class HDFilmCehennemi : MainAPI() {
                 val title = doc.selectFirst("h4.title")?.text() 
                     ?: doc.selectFirst("img")?.attr("alt") ?: "Film"
                 val img = doc.selectFirst("img")
-                val rawPoster = img?.attr("data-src")?.ifEmpty {
-                    img.attr("src").takeIf { !it.startsWith("data:") } ?: ""
-                } ?: ""
+                val poster = fixHdPosterUrl(cleanPosterUrl(img, mainUrl))
 
                 val isSeries = link.contains("/dizi/")
                 val type = if (isSeries) TvType.TvSeries else TvType.Movie
 
                 if (isSeries) {
                     searchResponses.add(newTvSeriesSearchResponse(title, link, type) {
-                        this.posterUrl = fixPosterUrl(rawPoster)
+                        addPoster(poster, mainUrl)
                     })
                 } else {
                     searchResponses.add(newMovieSearchResponse(title, link, type) {
-                        this.posterUrl = fixPosterUrl(rawPoster)
+                        addPoster(poster, mainUrl)
                     })
                 }
             }
@@ -125,11 +120,8 @@ class HDFilmCehennemi : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val doc = app.get(url, headers = standardHeaders).document
         val title = doc.selectFirst("h1")?.text()?.replace(" izle", "")?.trim() ?: "Film"
-        val img = doc.selectFirst("div.poster img, img.poster")
-        val rawPoster = img?.attr("data-src")?.ifEmpty {
-            img.attr("src").takeIf { !it.startsWith("data:") } ?: ""
-        } ?: ""
-        val poster = fixPosterUrl(rawPoster)
+        val img = doc.selectFirst("div.poster img, img.poster, img")
+        val poster = fixHdPosterUrl(cleanPosterUrl(img, mainUrl)) ?: doc.selectFirst("meta[property='og:image']")?.attr("content")
         val plot = doc.selectFirst("article.post-content, div.film-summary, p.description")?.text()
 
         val isSeries = url.contains("/dizi/") && !url.contains("/bolum-")
@@ -149,13 +141,13 @@ class HDFilmCehennemi : MainAPI() {
                 })
             }
             return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.distinctBy { it.data }) {
-                this.posterUrl = poster
+                addPoster(poster, mainUrl)
                 this.plot = plot
             }
         }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = plot
         }
     }

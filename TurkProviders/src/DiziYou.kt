@@ -53,18 +53,13 @@ class DiziYou : MainAPI() {
             ?: linkEl.text().trim()
             ?: return null
 
-        val posterUrl = fixUrlNull(
-            img?.attr("data-src")?.takeIf { it.isNotBlank() && !it.startsWith("data:") }
-                ?: img?.attr("src")?.takeIf { it.isNotBlank() && !it.startsWith("data:") }
-        )
-
         return if (isMovie) {
             newMovieSearchResponse(title, href, TvType.Movie) {
-                this.posterUrl = posterUrl
+                addPoster(img, mainUrl)
             }
         } else {
             newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                this.posterUrl = posterUrl
+                addPoster(img, mainUrl)
             }
         }
     }
@@ -82,11 +77,11 @@ class DiziYou : MainAPI() {
 
                 if (isMovie) {
                     newMovieSearchResponse(title, href, TvType.Movie) {
-                        this.posterUrl = poster
+                        addPoster(poster, mainUrl)
                     }
                 } else {
                     newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                        this.posterUrl = poster
+                        addPoster(poster, mainUrl)
                     }
                 }
             } else {
@@ -105,10 +100,8 @@ class DiziYou : MainAPI() {
             ?.replace("|", "")
             ?.trim() ?: "DiziYou"
 
-        val poster = fixUrlNull(
-            document.selectFirst("meta[property='og:image']")?.attr("content")
-                ?: document.selectFirst(".dizi__poster img, picture.card__poster img")?.attr("src")
-        )
+        val poster = document.selectFirst("meta[property='og:image']")?.attr("content")
+            ?: cleanPosterUrl(document.selectFirst(".dizi__poster img, picture.card__poster img, img"), mainUrl)
 
         val description = document.selectFirst("meta[property='og:description']")?.attr("content")
             ?: document.selectFirst(".dizi__story, .overview, p.story")?.text()?.trim()
@@ -119,7 +112,7 @@ class DiziYou : MainAPI() {
 
         if (url.contains("/film/")) {
             return newMovieLoadResponse(title, url, TvType.Movie, url) {
-                this.posterUrl = poster
+                addPoster(poster, mainUrl)
                 this.plot = description
                 this.year = year
             }
@@ -167,7 +160,7 @@ class DiziYou : MainAPI() {
         }
 
         return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.distinctBy { it.data }) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
         }

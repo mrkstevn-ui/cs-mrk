@@ -57,16 +57,15 @@ class DiziPal : MainAPI() {
                 ?: href.substringAfterLast("/").replace("-", " ").capitalizeWords()
         } ?: return null
 
-        val posterUrl = fixUrlNull(img?.attr("src")?.ifBlank { img.attr("data-src") })
         val isSeries = href.contains("/series/")
 
         return if (isSeries) {
             newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                this.posterUrl = posterUrl
+                addPoster(img, mainUrl)
             }
         } else {
             newMovieSearchResponse(title, href, TvType.Movie) {
-                this.posterUrl = posterUrl
+                addPoster(img, mainUrl)
             }
         }
     }
@@ -96,16 +95,16 @@ class DiziPal : MainAPI() {
                         ?.replace("izle", "", ignoreCase = true)?.trim()
                         ?: cleanQuery.capitalizeWords()
 
-                    val poster = fixUrlNull(doc.selectFirst("meta[property='og:image']")?.attr("content"))
+                    val poster = doc.selectFirst("meta[property='og:image']")?.attr("content")
                     val isSeries = candidate.contains("/series/")
 
                     val item = if (isSeries) {
                         newTvSeriesSearchResponse(title, candidate, TvType.TvSeries) {
-                            this.posterUrl = poster
+                            addPoster(poster, mainUrl)
                         }
                     } else {
                         newMovieSearchResponse(title, candidate, TvType.Movie) {
-                            this.posterUrl = poster
+                            addPoster(poster, mainUrl)
                         }
                     }
                     results.add(item)
@@ -146,10 +145,8 @@ class DiziPal : MainAPI() {
             .trim()
             .ifBlank { "DiziPal" }
 
-        val poster = fixUrlNull(
-            document.selectFirst("meta[property='og:image']")?.attr("content")
-                ?: document.selectFirst("img")?.attr("src")
-        )
+        val poster = document.selectFirst("meta[property='og:image']")?.attr("content")
+            ?: document.selectFirst("img")?.attr("src")
 
         val description = document.selectFirst("meta[name='description'], meta[property='og:description']")?.attr("content")?.trim()
 
@@ -170,13 +167,13 @@ class DiziPal : MainAPI() {
             }.distinctBy { it.data }.toList()
 
             return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
-                this.posterUrl = poster
+                addPoster(poster, mainUrl)
                 this.plot = description
             }
         }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = description
         }
     }

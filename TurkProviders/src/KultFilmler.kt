@@ -36,16 +36,15 @@ class KultFilmler : MainAPI() {
             ?: card.text().trim().takeIf { it.isNotBlank() }
             ?: return null
 
-        val posterUrl = fixUrlNull(img?.attr("src")?.ifBlank { img.attr("data-src") })
         val isSeries = href.contains("/dizi") || card.text().contains("Sezon", ignoreCase = true)
 
         return if (isSeries) {
             newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                this.posterUrl = posterUrl
+                addPoster(img, mainUrl)
             }
         } else {
             newMovieSearchResponse(title, href, TvType.Movie) {
-                this.posterUrl = posterUrl
+                addPoster(img, mainUrl)
             }
         }
     }
@@ -64,10 +63,8 @@ class KultFilmler : MainAPI() {
             if (it.tagName() == "meta") it.attr("content") else it.text()
         }?.replace("izle", "", ignoreCase = true)?.trim() ?: "Bilinmeyen Başlık"
 
-        val poster = fixUrlNull(
-            document.selectFirst("meta[property='og:image']")?.attr("content")
-                ?: document.selectFirst(".poster img, .single-poster img")?.let { it.attr("src").ifBlank { it.attr("data-src") } }
-        )
+        val poster = document.selectFirst("meta[property='og:image']")?.attr("content")
+            ?: cleanPosterUrl(document.selectFirst(".poster img, .single-poster img, img"), mainUrl)
 
         val description = document.selectFirst("meta[property='og:description']")?.attr("content")
             ?: document.selectFirst(".story, .entry-content p, .film-ozeti")?.text()?.trim()
@@ -89,7 +86,7 @@ class KultFilmler : MainAPI() {
                 }
             }
             return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
-                this.posterUrl = poster
+                addPoster(poster, mainUrl)
                 this.plot = description
                 this.year = year
                 this.tags = tags
@@ -97,7 +94,7 @@ class KultFilmler : MainAPI() {
         }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
             this.tags = tags

@@ -60,7 +60,7 @@ class AnimeciX : MainAPI() {
                     val title = ep.titleName ?: "Anime"
                     val poster = ep.titlePoster
                     items.add(newAnimeSearchResponse(title, "$mainUrl/titles/$id", TvType.Anime) {
-                        this.posterUrl = poster
+                        addPoster(poster, mainUrl)
                     })
                 }
             } else {
@@ -70,7 +70,7 @@ class AnimeciX : MainAPI() {
                     val id = itm.id ?: return@forEach
                     val title = itm.name ?: "Anime"
                     items.add(newAnimeSearchResponse(title, "$mainUrl/titles/$id", TvType.Anime) {
-                        this.posterUrl = itm.poster
+                        addPoster(itm.poster, mainUrl)
                     })
                 }
             }
@@ -100,7 +100,7 @@ class AnimeciX : MainAPI() {
                 val id = r.id ?: return@mapNotNull null
                 val title = r.name ?: "Anime"
                 newAnimeSearchResponse(title, "$mainUrl/titles/$id", TvType.Anime) {
-                    this.posterUrl = r.poster
+                    addPoster(r.poster, mainUrl)
                 }
             } ?: emptyList()
         } catch (e: Exception) {
@@ -165,7 +165,7 @@ class AnimeciX : MainAPI() {
         }
 
         return newAnimeLoadResponse(title, url, TvType.Anime) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = plot
             this.year = year
             addEpisodes(DubStatus.Subbed, episodeList)

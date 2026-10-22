@@ -41,7 +41,7 @@ class Patronspor : MainAPI() {
 
                 list.add(
                     newLiveSearchResponse(name, targetUrl, TvType.Live) {
-                        this.posterUrl = logo
+                        addPoster(logo, mainUrl)
                     }
                 )
             }
@@ -70,7 +70,7 @@ class Patronspor : MainAPI() {
 
                 list.add(
                     newLiveSearchResponse(title, targetUrl, TvType.Live) {
-                        this.posterUrl = logo
+                        addPoster(logo, mainUrl)
                     }
                 )
             }

@@ -27,16 +27,15 @@ class CizgiMax : MainAPI() {
             val href = fixUrlNull(if (el.tagName() == "a") el.attr("href") else el.selectFirst("a")?.attr("href")) ?: return@forEach
             val title = el.selectFirst(".title, h2, h3, .card-title")?.text()?.trim()
                 ?: el.text().trim().takeIf { it.isNotBlank() } ?: return@forEach
-            val poster = fixUrlNull(el.selectFirst("img")?.let { it.attr("src").ifBlank { it.attr("data-src") } })
-
+            val img = el.selectFirst("img")
             val isMovie = href.contains("/film/")
             val res = if (isMovie) {
                 newMovieSearchResponse(title, href, TvType.Movie) {
-                    this.posterUrl = poster
+                    addPoster(img, mainUrl)
                 }
             } else {
                 newTvSeriesSearchResponse(title, href, TvType.Cartoon) {
-                    this.posterUrl = poster
+                    addPoster(img, mainUrl)
                 }
             }
             items.add(res)
@@ -73,11 +72,11 @@ class CizgiMax : MainAPI() {
             data.animes?.mapNotNull { item ->
                 val link = fixUrlNull(item.url) ?: return@mapNotNull null
                 val title = item.name ?: "Çizgi Film"
-                val poster = fixUrlNull(item.poster)
+                val poster = item.poster
                 val type = if (item.kind == "anime") TvType.Anime else TvType.Cartoon
 
                 newTvSeriesSearchResponse(title, link, type) {
-                    this.posterUrl = poster
+                    addPoster(poster, mainUrl)
                 }
             } ?: emptyList()
         } catch (e: Exception) {
@@ -106,10 +105,8 @@ class CizgiMax : MainAPI() {
         val title = document.selectFirst("h1, .anime-title, .film-title")?.text()?.replace("izle", "", ignoreCase = true)?.trim()
             ?: "Bilinmeyen Yapım"
 
-        val poster = fixUrlNull(
-            document.selectFirst("meta[property='og:image']")?.attr("content")
-                ?: document.selectFirst(".poster img, .locandina img")?.let { it.attr("src").ifBlank { it.attr("data-src") } }
-        )
+        val poster = document.selectFirst("meta[property='og:image']")?.attr("content")
+            ?: cleanPosterUrl(document.selectFirst(".poster img, .locandina img, img"), mainUrl)
 
         val description = document.selectFirst("meta[property='og:description']")?.attr("content")
             ?: document.selectFirst(".summary, .trama, .description, p.synopsis")?.text()?.trim()
@@ -133,14 +130,14 @@ class CizgiMax : MainAPI() {
                 }
             }
             return newTvSeriesLoadResponse(title, url, TvType.Cartoon, episodes.distinctBy { it.data }) {
-                this.posterUrl = poster
+                addPoster(poster, mainUrl)
                 this.plot = description
                 this.year = year
             }
         }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
         }

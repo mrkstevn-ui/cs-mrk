@@ -28,10 +28,10 @@ class BelgeselX : MainAPI() {
                 ?: a.selectFirst("img")?.attr("alt")?.trim()
                 ?: a.text().trim().takeIf { it.isNotBlank() } ?: return@forEach
 
-            val poster = fixUrlNull(a.selectFirst("img")?.let { it.attr("src").ifBlank { it.attr("data-src") } })
+            val img = a.selectFirst("img")
 
             items.add(newTvSeriesSearchResponse(title, href, TvType.Documentary) {
-                this.posterUrl = poster
+                addPoster(img, mainUrl)
             })
         }
 
@@ -58,9 +58,9 @@ class BelgeselX : MainAPI() {
                         ?: a.text().trim()
 
                     if (title.lowercase().contains(qLower) || href.lowercase().contains(qLower)) {
-                        val poster = fixUrlNull(a.selectFirst("img")?.let { it.attr("src").ifBlank { it.attr("data-src") } })
+                        val img = a.selectFirst("img")
                         results.add(newTvSeriesSearchResponse(title, href, TvType.Documentary) {
-                            this.posterUrl = poster
+                            addPoster(img, mainUrl)
                         })
                     }
                 }
@@ -79,12 +79,10 @@ class BelgeselX : MainAPI() {
         }?.replace("belgeselx.com", "", ignoreCase = true)?.replace("izle", "", ignoreCase = true)?.trim()
             ?: "Bilinmeyen Belgesel"
 
-        val poster = fixUrlNull(
-            document.selectFirst("meta[property='og:image']")?.attr("content")
-                ?: document.selectFirst(".px-player-ambient")?.attr("style")?.let {
-                    Regex("url\\(['\"]?([^'\")]+)['\"]?\\)").find(it)?.groupValues?.get(1)
-                }
-        )
+        val poster = document.selectFirst("meta[property='og:image']")?.attr("content")
+            ?: document.selectFirst(".px-player-ambient")?.attr("style")?.let {
+                Regex("url\\(['\"]?([^'\")]+)['\"]?\\)").find(it)?.groupValues?.get(1)
+            } ?: cleanPosterUrl(document.selectFirst("img"), mainUrl)
 
         val description = document.selectFirst("meta[property='og:description']")?.attr("content")
             ?: document.selectFirst(".summary, .description, p")?.text()?.trim()
@@ -113,7 +111,7 @@ class BelgeselX : MainAPI() {
                 })
             }
             return newTvSeriesLoadResponse(title, url, TvType.Documentary, episodes.distinctBy { it.data }) {
-                this.posterUrl = poster
+                addPoster(poster, mainUrl)
                 this.plot = description
             }
         }
@@ -121,7 +119,7 @@ class BelgeselX : MainAPI() {
         // Single documentary / movie
         val defaultEpData = "default,0,0,0,$url"
         return newMovieLoadResponse(title, url, TvType.Documentary, defaultEpData) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = description
         }
     }

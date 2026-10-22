@@ -55,8 +55,6 @@ class Dizigom : MainAPI() {
             ?: return null
         val title = rawTitle.trim()
 
-        val poster = img?.attr("src")?.takeIf { !it.startsWith("data:") }
-
         val type = when {
             href.contains("/film/") -> TvType.Movie
             href.contains("/anime/") || href.contains("/animes") -> TvType.Anime
@@ -65,11 +63,11 @@ class Dizigom : MainAPI() {
 
         return if (type == TvType.Movie) {
             newMovieSearchResponse(title, href, type) {
-                this.posterUrl = poster
+                addPoster(img, mainUrl)
             }
         } else {
             newTvSeriesSearchResponse(title, href, type) {
-                this.posterUrl = poster
+                addPoster(img, mainUrl)
             }
         }
     }
@@ -106,7 +104,7 @@ class Dizigom : MainAPI() {
 
         if (isMovie) {
             return newMovieLoadResponse(title, url, TvType.Movie, url) {
-                this.posterUrl = poster
+                addPoster(poster, mainUrl)
                 this.plot = plot
                 this.year = year
                 this.tags = tags
@@ -138,7 +136,7 @@ class Dizigom : MainAPI() {
         )
 
         return newTvSeriesLoadResponse(title, url, type, sortedEpisodes) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = plot
             this.year = year
             this.tags = tags

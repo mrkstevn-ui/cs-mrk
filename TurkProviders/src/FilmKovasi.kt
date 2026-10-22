@@ -49,13 +49,8 @@ class FilmKovasi : MainAPI() {
             ?: linkEl?.text()?.trim()
             ?: return null
 
-        val posterUrl = fixUrlNull(
-            img?.attr("data-src")?.takeIf { it.isNotBlank() && !it.startsWith("data:") }
-                ?: img?.attr("src")?.takeIf { it.isNotBlank() && !it.startsWith("data:") }
-        )
-
         return newMovieSearchResponse(title, href, TvType.Movie) {
-            this.posterUrl = posterUrl
+            addPoster(img, mainUrl)
         }
     }
 
@@ -79,10 +74,8 @@ class FilmKovasi : MainAPI() {
             ?.replace("|", "")
             ?.trim() ?: "FilmKovası"
 
-        val poster = fixUrlNull(
-            document.selectFirst("meta[property='og:image']")?.attr("content")
-                ?: document.selectFirst(".poster img, .img img")?.let { it.attr("data-src").ifBlank { it.attr("src") } }
-        )
+        val poster = document.selectFirst("meta[property='og:image']")?.attr("content")
+            ?: cleanPosterUrl(document.selectFirst(".poster img, .img img, img"), mainUrl)
 
         val description = document.selectFirst("meta[property='og:description']")?.attr("content")
             ?: document.selectFirst(".film-icerik, .story, .entry-content p")?.text()?.trim()
@@ -92,7 +85,7 @@ class FilmKovasi : MainAPI() {
         }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
         }

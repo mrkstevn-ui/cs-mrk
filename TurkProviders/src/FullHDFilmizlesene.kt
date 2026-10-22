@@ -47,10 +47,9 @@ class FullHDFilmizlesene : MainAPI() {
             ?: return null
 
         val img = card.selectFirst("img")
-        val posterUrl = fixUrlNull(img?.attr("data-src")?.ifBlank { img.attr("src") } ?: img?.attr("src"))
 
         return newMovieSearchResponse(title, href, TvType.Movie) {
-            this.posterUrl = posterUrl
+            addPoster(img, mainUrl)
         }
     }
 
@@ -73,10 +72,8 @@ class FullHDFilmizlesene : MainAPI() {
             ?.replace("izle", "", ignoreCase = true)
             ?.trim() ?: "Bilinmeyen Film"
 
-        val poster = fixUrlNull(
-            document.selectFirst("meta[property='og:image']")?.attr("content")
-                ?: document.selectFirst(".ply-cover img, .afis img")?.let { it.attr("data-src").ifBlank { it.attr("src") } }
-        )
+        val poster = document.selectFirst("meta[property='og:image']")?.attr("content")
+            ?: cleanPosterUrl(document.selectFirst(".ply-cover img, .afis img, img"), mainUrl)
 
         val description = document.selectFirst("meta[property='og:description'], meta[name='description']")?.attr("content")?.trim()
             ?: document.selectFirst(".film-ozeti, .ozet")?.text()?.trim()
@@ -84,7 +81,7 @@ class FullHDFilmizlesene : MainAPI() {
         val year = document.selectFirst(".film-yil, .yil")?.text()?.filter { it.isDigit() }?.toIntOrNull()
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
         }

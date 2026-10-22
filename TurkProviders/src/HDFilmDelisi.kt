@@ -53,13 +53,8 @@ class HDFilmDelisi : MainAPI() {
             .replace(Regex("""\(\d{4}\)"""), "")
             .trim()
 
-        val posterUrl = fixUrlNull(
-            img?.attr("data-src")?.takeIf { it.isNotBlank() && !it.startsWith("data:") }
-                ?: img?.attr("src")?.takeIf { it.isNotBlank() && !it.startsWith("data:") }
-        )
-
         return newMovieSearchResponse(title, fullUrl, TvType.Movie) {
-            this.posterUrl = posterUrl
+            addPoster(img, mainUrl)
         }
     }
 
@@ -87,10 +82,8 @@ class HDFilmDelisi : MainAPI() {
             .replace(Regex("""\(\d{4}\)"""), "")
             .trim()
 
-        val poster = fixUrlNull(
-            document.selectFirst("meta[property='og:image']")?.attr("content")
-                ?: document.selectFirst("img[src*='/posters/']")?.attr("src")
-        )
+        val poster = document.selectFirst("meta[property='og:image']")?.attr("content")
+            ?: cleanPosterUrl(document.selectFirst("img[src*='/posters/'], img"), mainUrl)
 
         val description = document.selectFirst("meta[property='og:description']")?.attr("content")
             ?: document.selectFirst("p.description, .overview, .plot")?.text()?.trim()
@@ -98,7 +91,7 @@ class HDFilmDelisi : MainAPI() {
         val year = Regex("""\b(19\d\d|20\d\d)\b""").find(rawTitle)?.groupValues?.get(1)?.toIntOrNull()
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
         }

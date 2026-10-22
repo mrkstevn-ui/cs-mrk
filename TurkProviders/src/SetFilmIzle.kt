@@ -35,19 +35,17 @@ class SetFilmIzle : MainAPI() {
             val article = cardLink.selectFirst("article.card") ?: continue
             val title = article.selectFirst(".card-ad, h2, h3")?.text()?.trim()
                 ?: article.selectFirst("img")?.attr("alt")?.trim() ?: continue
-            val poster = article.selectFirst("img")?.let {
-                it.attr("src").ifEmpty { it.attr("data-src") }
-            }
+            val img = article.selectFirst("img")
             val isTv = href.contains("/dizi/")
             val tvType = if (isTv) TvType.TvSeries else TvType.Movie
 
             if (isTv) {
                 items.add(newTvSeriesSearchResponse(title, href, tvType) {
-                    this.posterUrl = poster
+                    addPoster(img, mainUrl)
                 })
             } else {
                 items.add(newMovieSearchResponse(title, href, tvType) {
-                    this.posterUrl = poster
+                    addPoster(img, mainUrl)
                 })
             }
         }
@@ -66,19 +64,17 @@ class SetFilmIzle : MainAPI() {
             val article = cardLink.selectFirst("article.card") ?: continue
             val title = article.selectFirst(".card-ad, h2, h3")?.text()?.trim()
                 ?: article.selectFirst("img")?.attr("alt")?.trim() ?: continue
-            val poster = article.selectFirst("img")?.let {
-                it.attr("src").ifEmpty { it.attr("data-src") }
-            }
+            val img = article.selectFirst("img")
             val isTv = href.contains("/dizi/")
             val tvType = if (isTv) TvType.TvSeries else TvType.Movie
 
             if (isTv) {
                 items.add(newTvSeriesSearchResponse(title, href, tvType) {
-                    this.posterUrl = poster
+                    addPoster(img, mainUrl)
                 })
             } else {
                 items.add(newMovieSearchResponse(title, href, tvType) {
-                    this.posterUrl = poster
+                    addPoster(img, mainUrl)
                 })
             }
         }
@@ -91,9 +87,7 @@ class SetFilmIzle : MainAPI() {
         val doc = Jsoup.parse(res)
 
         val title = doc.selectFirst("h1.stf-title, h1")?.text()?.trim() ?: "Bilinmeyen Başlık"
-        val poster = doc.selectFirst(".fplayer-before img, .poster-art img")?.let {
-            it.attr("src").ifEmpty { it.attr("data-src") }
-        }
+        val poster = cleanPosterUrl(doc.selectFirst(".fplayer-before img, .poster-art img, img"), mainUrl)
         val plot = doc.selectFirst(".hcard-ozet, .film-ozet, .entry-content p")?.text()?.trim()
         val year = Regex("""\b(19\d\d|20\d\d)\b""").find(res)?.value?.toIntOrNull()
 
@@ -117,13 +111,13 @@ class SetFilmIzle : MainAPI() {
             }
 
             return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
-                this.posterUrl = poster
+                addPoster(poster, mainUrl)
                 this.plot = plot
                 this.year = year
             }
         } else {
             return newMovieLoadResponse(title, url, TvType.Movie, url) {
-                this.posterUrl = poster
+                addPoster(poster, mainUrl)
                 this.plot = plot
                 this.year = year
             }

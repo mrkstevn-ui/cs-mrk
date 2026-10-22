@@ -58,13 +58,11 @@ class FilmModu : MainAPI() {
         val rawTitle = a.attr("title").ifEmpty { element.selectFirst("h3")?.text() ?: "" }
         val title = rawTitle.replace(" izle", "", ignoreCase = true).trim()
 
-        val poster = element.selectFirst("picture img")?.let { img ->
-            val src = img.attr("data-src").ifEmpty { img.attr("src") }
-            if (src.startsWith("data:")) null else src
-        }?.replace("_f.", "_xl.")?.replace("_m.", "_xl.")
+        val img = element.selectFirst("picture img, img")
+        val poster = cleanPosterUrl(img, mainUrl)?.replace("_f.", "_xl.")?.replace("_m.", "_xl.")
 
         return newMovieSearchResponse(title, href, TvType.Movie) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
         }
     }
 
@@ -89,7 +87,7 @@ class FilmModu : MainAPI() {
                 val title = a.selectFirst(".title")?.text()?.ifEmpty { a.attr("title") } ?: a.attr("title")
                 val poster = a.selectFirst("img")?.attr("src")?.replace("_m.", "_xl.")
                 newMovieSearchResponse(title.trim(), href, TvType.Movie) {
-                    this.posterUrl = poster
+                    addPoster(poster, mainUrl)
                 }
             }
         } catch (e: Exception) {
@@ -109,10 +107,8 @@ class FilmModu : MainAPI() {
             .replace(" Filmi Türkçe Dublaj 1080p Full HD", "", ignoreCase = true)
             .trim()
 
-        val poster = doc.selectFirst("section.movie_meta picture img")?.let { img ->
-            val src = img.attr("data-src").ifEmpty { img.attr("src") }
-            if (src.startsWith("data:")) null else src
-        }?.replace("_f.", "_xl.") ?: doc.selectFirst("meta[property=og:image]")?.attr("content")
+        val poster = cleanPosterUrl(doc.selectFirst("section.movie_meta picture img, img"), mainUrl)?.replace("_f.", "_xl.")
+            ?: doc.selectFirst("meta[property=og:image]")?.attr("content")
 
         val plot = doc.selectFirst("div[itemprop=description]")?.text()
             ?: doc.selectFirst("meta[name=description]")?.attr("content")
@@ -121,7 +117,7 @@ class FilmModu : MainAPI() {
         val tags = doc.select("a[rel=category tag]").map { it.text() }
 
         return newMovieLoadResponse(cleanTitle, url, TvType.Movie, url) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = plot
             this.year = year
             this.tags = tags

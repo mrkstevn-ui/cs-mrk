@@ -44,16 +44,15 @@ class DiziGecesi : MainAPI() {
             ?: card.text().trim().takeIf { it.isNotBlank() }
             ?: return null
 
-        val posterUrl = fixUrlNull(img?.attr("src")?.ifBlank { img.attr("data-src") })
         val isSeries = href.contains("/dizi/")
 
         return if (isSeries) {
             newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                this.posterUrl = posterUrl
+                addPoster(img, mainUrl)
             }
         } else {
             newMovieSearchResponse(title, href, TvType.Movie) {
-                this.posterUrl = posterUrl
+                addPoster(img, mainUrl)
             }
         }
     }
@@ -74,10 +73,8 @@ class DiziGecesi : MainAPI() {
             if (it.tagName() == "meta") it.attr("content") else it.text()
         }?.replace("İzle", "", ignoreCase = true)?.replace("- Dizigecesi", "", ignoreCase = true)?.trim() ?: "DiziGecesi"
 
-        val poster = fixUrlNull(
-            document.selectFirst("meta[property='og:image']")?.attr("content")
-                ?: document.selectFirst(".card-series__image img, img.card-series__image-media")?.attr("src")
-        )
+        val poster = document.selectFirst("meta[property='og:image']")?.attr("content")
+            ?: cleanPosterUrl(document.selectFirst(".card-series__image img, img.card-series__image-media, img"), mainUrl)
 
         val description = document.selectFirst("meta[property='og:description']")?.attr("content")
             ?: document.selectFirst(".series-info-heading__description, .overview, p.description")?.text()?.trim()
@@ -111,7 +108,7 @@ class DiziGecesi : MainAPI() {
             }.distinctBy { it.data }
 
             return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
-                this.posterUrl = poster
+                addPoster(poster, mainUrl)
                 this.plot = description
                 this.year = year
                 this.tags = tags
@@ -119,7 +116,7 @@ class DiziGecesi : MainAPI() {
         }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
             this.tags = tags

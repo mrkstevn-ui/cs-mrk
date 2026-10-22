@@ -35,16 +35,15 @@ class DiziFilmizle : MainAPI() {
             val title = img?.attr("alt")?.ifBlank { null }
                 ?: a.selectFirst("h2, h3, .title")?.text()?.ifBlank { null }
                 ?: return@forEach
-            val poster = fixUrlNull(img?.attr("src")?.ifBlank { img.attr("data-src") })
             val isSeries = href.contains("/dizi/")
 
             val res = if (isSeries) {
                 newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                    this.posterUrl = poster
+                    addPoster(img, mainUrl)
                 }
             } else {
                 newMovieSearchResponse(title, href, TvType.Movie) {
-                    this.posterUrl = poster
+                    addPoster(img, mainUrl)
                 }
             }
             items.add(res)
@@ -84,15 +83,15 @@ class DiziFilmizle : MainAPI() {
                 val isSeries = r.type == "dizi"
                 val href = if (isSeries) "$mainUrl/dizi/$slug" else "$mainUrl/film/$slug"
                 val title = r.title ?: r.originalTitle ?: "Film"
-                val poster = fixUrlNull(r.posterUrl)
+                val poster = r.posterUrl
 
                 if (isSeries) {
                     newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                        this.posterUrl = poster
+                        addPoster(poster, mainUrl)
                     }
                 } else {
                     newMovieSearchResponse(title, href, TvType.Movie) {
-                        this.posterUrl = poster
+                        addPoster(poster, mainUrl)
                     }
                 }
             } ?: emptyList()
@@ -109,10 +108,8 @@ class DiziFilmizle : MainAPI() {
             if (it.tagName() == "meta") it.attr("content") else it.text()
         }?.replace("izle", "", ignoreCase = true)?.trim() ?: "Bilinmeyen Yapım"
 
-        val poster = fixUrlNull(
-            document.selectFirst("meta[property='og:image']")?.attr("content")
-                ?: document.selectFirst("picture img, .poster img")?.let { it.attr("src").ifBlank { it.attr("data-src") } }
-        )
+        val poster = document.selectFirst("meta[property='og:image']")?.attr("content")
+            ?: cleanPosterUrl(document.selectFirst("picture img, .poster img, img"), mainUrl)
 
         val description = document.selectFirst("meta[property='og:description']")?.attr("content")
             ?: document.selectFirst(".story, .summary, p.description")?.text()?.trim()
@@ -136,14 +133,14 @@ class DiziFilmizle : MainAPI() {
                 })
             }
             return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.distinctBy { it.data }) {
-                this.posterUrl = poster
+                addPoster(poster, mainUrl)
                 this.plot = description
                 this.year = year
             }
         }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
         }

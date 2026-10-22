@@ -26,10 +26,10 @@ class DiziBox : MainAPI() {
             val href = fixUrlNull(if (el.tagName() == "a") el.attr("href") else el.selectFirst("a[href*='-sezon-']")?.attr("href")) ?: return@forEach
             val title = el.selectFirst("h2, h3, .title, .entry-title")?.text()?.trim()
                 ?: el.text().trim().takeIf { it.isNotBlank() } ?: return@forEach
-            val poster = fixUrlNull(el.selectFirst("img")?.let { it.attr("src").ifBlank { it.attr("data-src") } })
+            val img = el.selectFirst("img")
 
             items.add(newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                this.posterUrl = poster
+                addPoster(img, mainUrl)
             })
         }
 
@@ -63,7 +63,7 @@ class DiziBox : MainAPI() {
                 val link = r.permalink ?: return@mapNotNull null
                 val title = r.postTitle ?: "Dizi"
                 newTvSeriesSearchResponse(title, link, TvType.TvSeries) {
-                    this.posterUrl = r.image
+                    addPoster(r.image, mainUrl)
                 }
             } ?: emptyList()
         } catch (e: Exception) {
@@ -90,10 +90,8 @@ class DiziBox : MainAPI() {
         val title = document.selectFirst("h1, .entry-title")?.text()?.replace("izle", "", ignoreCase = true)?.trim()
             ?: "Bilinmeyen Dizi"
 
-        val poster = fixUrlNull(
-            document.selectFirst("meta[property='og:image']")?.attr("content")
-                ?: document.selectFirst(".poster img, .cover img")?.let { it.attr("src").ifBlank { it.attr("data-src") } }
-        )
+        val poster = document.selectFirst("meta[property='og:image']")?.attr("content")
+            ?: cleanPosterUrl(document.selectFirst(".poster img, .cover img, img"), mainUrl)
 
         val description = document.selectFirst("meta[property='og:description']")?.attr("content")
             ?: document.selectFirst(".entry-content p, .story, .summary")?.text()?.trim()
@@ -115,7 +113,7 @@ class DiziBox : MainAPI() {
         }
 
         return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.distinctBy { it.data }) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = description
         }
     }

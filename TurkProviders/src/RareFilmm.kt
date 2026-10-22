@@ -51,10 +51,10 @@ class RareFilmm : MainAPI() {
 
         val style = card.selectFirst(".featured-image")?.attr("style") ?: ""
         val posterMatch = Regex("""url\(['"]?(https?://[^'")]+)['"]?\)""").find(style)
-        val posterUrl = posterMatch?.groupValues?.get(1)
+        val posterUrl = posterMatch?.groupValues?.get(1) ?: cleanPosterUrl(card.selectFirst("img"), mainUrl)
 
         return newMovieSearchResponse(title, href, TvType.Movie) {
-            this.posterUrl = posterUrl
+            addPoster(posterUrl, mainUrl)
         }
     }
 
@@ -74,13 +74,11 @@ class RareFilmm : MainAPI() {
             ?: document.selectFirst("meta[property='og:title']")?.attr("content")
             ?: "Rare Film"
 
-        val poster = fixUrlNull(
-            document.selectFirst("meta[property='og:image']")?.attr("content")
-                ?: document.selectFirst(".featured-image")?.let {
-                    val s = it.attr("style")
-                    Regex("""url\(['"]?(https?://[^'")]+)['"]?\)""").find(s)?.groupValues?.get(1)
-                }
-        )
+        val poster = document.selectFirst("meta[property='og:image']")?.attr("content")
+            ?: document.selectFirst(".featured-image")?.let {
+                val s = it.attr("style")
+                Regex("""url\(['"]?(https?://[^'")]+)['"]?\)""").find(s)?.groupValues?.get(1)
+            } ?: cleanPosterUrl(document.selectFirst("img"), mainUrl)
 
         val description = document.selectFirst("meta[property='og:description']")?.attr("content")
             ?: document.selectFirst(".entry-content p")?.text()?.trim()
@@ -88,7 +86,7 @@ class RareFilmm : MainAPI() {
         val year = Regex("""\b(19\d\d|20\d\d)\b""").find(title)?.groupValues?.get(1)?.toIntOrNull()
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
         }

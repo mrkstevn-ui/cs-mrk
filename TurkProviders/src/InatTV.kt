@@ -83,7 +83,7 @@ class InatTV : MainAPI() {
 
                         items.add(
                             newLiveSearchResponse(title, targetUrl, TvType.Live) {
-                                this.posterUrl = logo
+                                addPoster(logo, mainUrl)
                             }
                         )
                     }
@@ -148,7 +148,7 @@ class InatTV : MainAPI() {
 
                     results.add(
                         newLiveSearchResponse(title, targetUrl, TvType.Live) {
-                            this.posterUrl = logo
+                            addPoster(logo, mainUrl)
                         }
                     )
                 }

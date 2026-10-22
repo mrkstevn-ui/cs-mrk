@@ -34,11 +34,9 @@ class SezonlukDizi : MainAPI() {
             val title = if (rawTitle.isNotEmpty()) rawTitle else (desc ?: "")
             if (title.isBlank()) continue
             val img = a.selectFirst("img")
-            val posterRaw = img?.attr("data-src")?.ifEmpty { img.attr("src") }
-            val poster = if (!posterRaw.isNullOrBlank() && !posterRaw.startsWith("data:")) fixUrl(posterRaw) else null
 
             items.add(newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                this.posterUrl = poster
+                addPoster(img, mainUrl)
             })
         }
 
@@ -66,10 +64,9 @@ class SezonlukDizi : MainAPI() {
                 val title = item.optString("title").replace(Regex("""\(\d+\)"""), "").trim()
                 val url = fixUrl(item.optString("url"))
                 val img = item.optString("image")
-                val poster = if (img.isNotBlank()) fixUrl(img) else null
 
                 items.add(newTvSeriesSearchResponse(title, url, TvType.TvSeries) {
-                    this.posterUrl = poster
+                    addPoster(img, mainUrl)
                 })
             }
         } catch (e: Exception) {
@@ -83,10 +80,7 @@ class SezonlukDizi : MainAPI() {
         val doc = Jsoup.parse(res)
 
         val title = doc.selectFirst("h1")?.text()?.replace(" izle", "")?.trim() ?: "Bilinmeyen Dizi"
-        val poster = doc.selectFirst(".afis img, .ui.image img")?.let {
-            val src = it.attr("data-src").ifEmpty { it.attr("src") }
-            if (src.startsWith("data:")) null else fixUrl(src)
-        }
+        val poster = cleanPosterUrl(doc.selectFirst(".afis img, .ui.image img, img"), mainUrl)
         val plot = doc.selectFirst("#ozet, .ozet, .description p")?.text()?.trim()
 
         val slug = url.substringAfter("/diziler/").substringBefore(".html")
@@ -119,7 +113,7 @@ class SezonlukDizi : MainAPI() {
         }
 
         return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.distinctBy { it.data }) {
-            this.posterUrl = poster
+            addPoster(poster, mainUrl)
             this.plot = plot
         }
     }
