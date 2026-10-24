@@ -5,7 +5,7 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
 class AnimeciX : MainAPI() {
-    override var mainUrl = "https://animecix.tv"
+    override var mainUrl = "https://animecix.com"
     override var name = "AnimeciX"
     override val hasMainPage = true
     override var lang = "tr"
