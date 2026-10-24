@@ -90,7 +90,7 @@
   "DiziFilmizle": {
     "file": "TurkProviders/src/DiziFilmizle.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://dizifilmizle.to",
+    "current_url": "https://dizifilmizle.com",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
       "https://dizifilmizle.to",
