@@ -37,7 +37,7 @@ subprojects {
     apply(plugin = "com.lagradost.cloudstream3.gradle")
 
     cloudstream {
-        setRepo("mrkstevn-ui", "cs-mrk", "https://github.com/mrkstevn-ui/cs-mrk", "https://cdn.jsdelivr.net/gh/mrkstevn-ui/cs-mrk@%branch%/%filename%")
+        setRepo(System.getenv("GITHUB_REPOSITORY") ?: "https://github.com/mrkstevn-ui/cs-mrk")
     }
 
     android {

@@ -1,4 +1,4 @@
-version = 8
+version = 9
 
 cloudstream {
     authors     = listOf("Custom")
@@ -6,7 +6,7 @@ cloudstream {
     description = "Türkçe Dizi, Film, Anime ve Canlı TV Sağlayıcıları"
     status      = 1
     tvTypes     = listOf("Movie", "TvSeries", "Anime", "Live")
-    iconUrl     = "https://cdn.jsdelivr.net/gh/mrkstevn-ui/cs-mrk@main/icon.png"
+    iconUrl     = "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/main/icon.png"
 }
 
 android {

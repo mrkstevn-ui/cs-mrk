@@ -3,6 +3,6 @@
   "description": "Güncel Türkçe dizi, film, anime ve canlı yayın sağlayıcıları",
   "manifestVersion": 1,
   "pluginLists": [
-    "https://cdn.jsdelivr.net/gh/mrkstevn-ui/cs-mrk@builds/plugins.json"
+    "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/plugins.json"
   ]
 }
