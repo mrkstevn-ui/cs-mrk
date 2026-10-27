@@ -6,7 +6,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class InatTV : MainAPI() {
-    override var mainUrl = "https://inattv1326.xyz"
+    override var mainUrl = "https://inattv1327.xyz"
     override var name = "İnatTV"
     override val hasMainPage = true
     override var lang = "tr"

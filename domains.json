@@ -40,7 +40,7 @@
   "KultFilmler": {
     "file": "TurkProviders/src/KultFilmler.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://kultfilmler.net",
+    "current_url": "https://kultfilmler.org",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
       "https://kultfilmler.net",
@@ -196,7 +196,7 @@
   "InatTV": {
     "file": "TurkProviders/src/InatTV.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://inattv1326.xyz",
+    "current_url": "https://inattv1327.xyz",
     "strategy": "numeric_increment",
     "pattern": "https://inattv{num}.xyz",
     "mirrors": [
