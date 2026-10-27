@@ -2,14 +2,13 @@
   "HDFilmCehennemi": {
     "file": "TurkProviders/src/HDFilmCehennemi.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://www.hdfilmcehennemi.nl",
+    "current_url": "https://www.hdfilmcehennemi.to",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
-      "https://www.hdfilmcehennemi.nl",
+      "https://www.hdfilmcehennemi.to",
       "https://www.hdfilmcehennemi.cx",
-      "https://www.hdfilmcehennemi.top",
-      "https://www.hdfilmcehennemi.ws",
-      "https://www.hdfilmcehennemi.com"
+      "https://www.hdfilmcehennemi.nl",
+      "https://www.hdfilmcehennemi.top"
     ],
     "verification_keyword": "hdfilmcehennemi"
   },
@@ -41,7 +40,7 @@
   "KultFilmler": {
     "file": "TurkProviders/src/KultFilmler.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://kultfilmler.org",
+    "current_url": "https://kultfilmler.net",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
       "https://kultfilmler.net",
@@ -53,25 +52,23 @@
   "DiziBox": {
     "file": "TurkProviders/src/DiziBox.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://www.dizibox.live",
+    "current_url": "https://www.dizibox.to",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
+      "https://www.dizibox.to",
       "https://www.dizibox.live",
-      "https://www.dizibox.tv",
-      "https://www.dizibox.com",
-      "https://www.dizibox1.com"
+      "https://www.dizibox.tv"
     ],
     "verification_keyword": "dizibox"
   },
   "AnimeciX": {
     "file": "TurkProviders/src/AnimeciX.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://animecix.com",
+    "current_url": "https://animecix.tv",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
       "https://animecix.tv",
-      "https://animecix.net",
-      "https://animecix.com"
+      "https://animecix.net"
     ],
     "verification_keyword": "animecix"
   },
@@ -90,11 +87,10 @@
   "DiziFilmizle": {
     "file": "TurkProviders/src/DiziFilmizle.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://dizifilmizle.com",
+    "current_url": "https://dizifilmizle.to",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
       "https://dizifilmizle.to",
-      "https://dizifilmizle.com",
       "https://dizifilmizle.org"
     ],
     "verification_keyword": "dizifilmizle"
@@ -126,13 +122,13 @@
   "DiziPal": {
     "file": "TurkProviders/src/DiziPal.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://dizipal1591.com",
+    "current_url": "https://dizipal1592.com",
     "strategy": "numeric_increment",
     "pattern": "https://dizipal{num}.com",
     "mirrors": [
-      "https://dizipal1591.com",
       "https://dizipal1592.com",
-      "https://dizipal1593.com"
+      "https://dizipal1591.com",
+      "https://dizipal1590.com"
     ],
     "verification_keyword": "dizipal"
   },
@@ -200,27 +196,24 @@
   "InatTV": {
     "file": "TurkProviders/src/InatTV.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://inattv1327.xyz",
+    "current_url": "https://inattv1326.xyz",
     "strategy": "numeric_increment",
     "pattern": "https://inattv{num}.xyz",
     "mirrors": [
       "https://inattv1326.xyz",
-      "https://inattv1327.xyz",
-      "https://patronkale1.cfd",
-      "https://patronsports2.cfd"
+      "https://inattv1325.xyz"
     ],
     "verification_keyword": "inat"
   },
   "Patronspor": {
     "file": "TurkProviders/src/Patronspor.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://patronspor.is",
+    "current_url": "https://patronkale2.cfd",
     "strategy": "numeric_increment",
     "pattern": "https://patronkale{num}.cfd",
     "mirrors": [
-      "https://patronkale1.cfd",
       "https://patronkale2.cfd",
-      "https://patronsports2.cfd"
+      "https://patronkale1.cfd"
     ],
     "verification_keyword": "patron"
   },

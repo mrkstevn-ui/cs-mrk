@@ -6,7 +6,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class Patronspor : MainAPI() {
-    override var mainUrl = "https://patronspor.is"
+    override var mainUrl = "https://patronkale2.cfd"
     override var name = "Patronspor"
     override val hasMainPage = true
     override var lang = "tr"

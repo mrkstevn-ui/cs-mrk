@@ -6,7 +6,7 @@ import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
 
 class DiziBox : MainAPI() {
-    override var mainUrl = "https://www.dizibox.live"
+    override var mainUrl = "https://www.dizibox.to"
     override var name = "DiziBOX"
     override val hasMainPage = true
     override var lang = "tr"

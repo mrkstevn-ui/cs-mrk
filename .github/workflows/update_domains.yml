@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,6 +28,7 @@ jobs:
           python3 scripts/update_domains.py
 
       - name: Commit and Push if changed
+        id: commit_check
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -35,6 +37,49 @@ jobs:
             git add .
             git commit -m "[Auto-Updater] Update rotating provider domains"
             git push origin main
+            echo "changed=true" >> $GITHUB_OUTPUT
           else
             echo "No domain changes detected."
+            echo "changed=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Set up JDK 17
+        if: steps.commit_check.outputs.changed == 'true'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        if: steps.commit_check.outputs.changed == 'true'
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        if: steps.commit_check.outputs.changed == 'true'
+        run: chmod +x gradlew || true
+
+      - name: Build Plugins (.cs3)
+        if: steps.commit_check.outputs.changed == 'true'
+        run: |
+          ./gradlew make makePluginsJson --stacktrace
+          mkdir -p dist
+          find . -name "*.cs3" -exec cp {} dist/ \;
+          cp build/plugins.json dist/ || true
+          cp repo.json dist/ || true
+          ls -la dist/
+
+      - name: Deploy to builds branch
+        if: steps.commit_check.outputs.changed == 'true'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: builds
+          folder: dist
+          clean: true
+
+      - name: Purge jsDelivr Cache
+        if: steps.commit_check.outputs.changed == 'true'
+        run: |
+          sleep 2
+          curl -s "https://purge.jsdelivr.net/gh/mrkstevn-ui/cs-mrk@builds/plugins.json" || true
+          curl -s "https://purge.jsdelivr.net/gh/mrkstevn-ui/cs-mrk@builds/repo.json" || true
+          curl -s "https://purge.jsdelivr.net/gh/mrkstevn-ui/cs-mrk@main/repo.json" || true

@@ -11,7 +11,7 @@ import org.mozilla.javascript.Scriptable
 import java.util.regex.Pattern
 
 class HDFilmCehennemi : MainAPI() {
-    override var mainUrl = "https://www.hdfilmcehennemi.nl"
+    override var mainUrl = "https://www.hdfilmcehennemi.to"
     override var name = "HDFilmcehennemi"
     override val hasMainPage = true
     override var lang = "tr"

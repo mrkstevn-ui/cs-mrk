@@ -15,7 +15,7 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 class DiziPal : MainAPI() {
-    override var mainUrl = "https://dizipal1591.com"
+    override var mainUrl = "https://dizipal1592.com"
     override var name = "DiziPal"
     override val hasMainPage = true
     override var lang = "tr"

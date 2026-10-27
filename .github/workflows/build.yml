@@ -48,3 +48,10 @@ jobs:
           branch: builds
           folder: dist
           clean: true
+
+      - name: Purge jsDelivr Cache
+        run: |
+          sleep 2
+          curl -s "https://purge.jsdelivr.net/gh/mrkstevn-ui/cs-mrk@builds/plugins.json" || true
+          curl -s "https://purge.jsdelivr.net/gh/mrkstevn-ui/cs-mrk@builds/repo.json" || true
+          curl -s "https://purge.jsdelivr.net/gh/mrkstevn-ui/cs-mrk@main/repo.json" || true
