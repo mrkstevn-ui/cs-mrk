@@ -160,9 +160,68 @@ class HDFilmCehennemi : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val doc = app.get(data, headers = standardHeaders).document
-        val videoButtons = doc.select("button[data-video], [data-video]")
+        val html = app.get(data, headers = standardHeaders).text
+        val doc = Jsoup.parse(html)
+        var foundAny = false
 
+        // 1. Yeni Sistem: Alpine.js videoPlayerData JSON parsing
+        val jsonMatch = Regex("""videoPlayerData\s*\(\s*JSON\.parse\(\s*'([^']+)'\s*\)""").find(html)?.groupValues?.get(1)
+        if (!jsonMatch.isNullOrBlank()) {
+            try {
+                val rawJson = jsonMatch.replace("\\u0022", "\"").replace("\\/", "/")
+                val jsonObj = JSONObject(rawJson)
+                for (key in jsonObj.keys()) {
+                    val arr = jsonObj.optJSONArray(key) ?: continue
+                    for (i in 0 until arr.length()) {
+                        val item = arr.optJSONObject(i) ?: continue
+                        val serviceName = item.optString("service_name", "HDFilmcehennemi")
+                        val link = item.optString("link")
+                        val tmplB64 = item.optString("template")
+                        val tmpl = if (tmplB64.isNotBlank()) String(base64DecodeArray(tmplB64), Charsets.UTF_8) else ""
+                        val iframeSrcMatch = Regex("""(?:data-src|src)="([^"]+)"""").find(tmpl)?.groupValues?.get(1)
+                        val playerUrl = fixUrlNull(iframeSrcMatch?.replace("{url}", link)) ?: continue
+
+                        if (playerUrl.contains("vidload.top/player/") || playerUrl.contains("/player/")) {
+                            try {
+                                val pHtml = app.get(playerUrl, headers = mapOf("Referer" to "$mainUrl/")).text
+                                var cleaned = pHtml
+                                repeat(3) {
+                                    cleaned = cleaned.replace("\\\\", "\\").replace("\\/", "/")
+                                }
+                                cleaned = cleaned.replace("\\u0022", "\"").replace("\"", "")
+                                val m3u8Match = Regex("""https?://[^\s,;']+\.m3u8[^\s,;']*""").find(cleaned)?.value
+                                if (m3u8Match != null) {
+                                    callback.invoke(
+                                        newExtractorLink(
+                                            source = name,
+                                            name = "$name - $serviceName",
+                                            url = m3u8Match,
+                                            type = ExtractorLinkType.M3U8
+                                        ) {
+                                            this.headers = mapOf(
+                                                "Referer" to playerUrl,
+                                                "User-Agent" to TURK_USER_AGENT
+                                            )
+                                        }
+                                    )
+                                    foundAny = true
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        } else {
+                            loadExtractor(playerUrl, data, subtitleCallback, callback)
+                            foundAny = true
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        // 2. Eski Sistem Fallback: data-video butonları
+        val videoButtons = doc.select("button[data-video], [data-video]")
         for (btn in videoButtons) {
             val videoId = btn.attr("data-video").trim()
             val sourceLabel = btn.text().trim().ifEmpty { "Varsayılan" }
@@ -187,14 +246,28 @@ class HDFilmCehennemi : MainAPI() {
 
                 if (playerUrl.contains("hdfilmcehennemi.mobi/video/embed/") || playerUrl.contains("/rplayer/")) {
                     resolveMobiEmbed(playerUrl, sourceLabel, subtitleCallback, callback)
+                    foundAny = true
                 } else {
                     loadExtractor(playerUrl, data, subtitleCallback, callback)
+                    foundAny = true
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
-        return true
+
+        // 3. Genel iframe Fallback
+        if (!foundAny) {
+            doc.select("iframe").forEach { iframe ->
+                val src = fixUrlNull(iframe.attr("data-src").ifEmpty { iframe.attr("src") }) ?: return@forEach
+                if (!src.contains("youtube.com") && !src.contains("google.com")) {
+                    loadExtractor(src, data, subtitleCallback, callback)
+                    foundAny = true
+                }
+            }
+        }
+
+        return foundAny
     }
 
     // hdfilmcehennemi.mobi ve rplayer oynatıcı şifresini çözen motor
