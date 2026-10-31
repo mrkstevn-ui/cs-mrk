@@ -27,5 +27,8 @@ class TurkProvidersPlugin: Plugin() {
         registerMainAPI(Patronspor())
         registerMainAPI(SetFilmIzle())
         registerMainAPI(SezonlukDizi())
+
+        registerExtractorAPI(ByseJikuar())
+        registerExtractorAPI(ByseZoxexe())
     }
 }

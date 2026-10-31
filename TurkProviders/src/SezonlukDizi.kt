@@ -1,6 +1,7 @@
 package com.turk
 
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.network.WebViewResolver
 import com.lagradost.cloudstream3.utils.*
 import org.json.JSONObject
 import org.jsoup.Jsoup
@@ -13,17 +14,25 @@ class SezonlukDizi : MainAPI() {
     override val hasQuickSearch = false
     override val supportedTypes = setOf(TvType.TvSeries)
 
+    private val cfInterceptor = WebViewResolver(Regex(""".*sezonlukdizi.*"""))
+
     override val mainPage = mainPageOf(
-        "$mainUrl/diziler.asp?sayfa=" to "Popüler Yabancı Diziler",
-        "$mainUrl/diziler.asp?durum=3&sayfa=" to "Devam Eden Diziler",
-        "$mainUrl/diziler.asp?kat=1&sayfa=" to "Mini Diziler",
-        "$mainUrl/diziler.asp?tur=animasyon&sayfa=" to "Animasyon Dizileri",
-        "$mainUrl/diziler.asp?tur=bilimkurgu&sayfa=" to "Bilim Kurgu Dizileri"
+        "$mainUrl/diziler.asp?s=" to "Popüler Yabancı Diziler",
+        "$mainUrl/diziler.asp?durum=3&s=" to "Devam Eden Diziler",
+        "$mainUrl/diziler.asp?kat=1&s=" to "Mini Diziler",
+        "$mainUrl/diziler.asp?tur=animasyon&s=" to "Animasyon Dizileri",
+        "$mainUrl/diziler.asp?tur=bilimkurgu&s=" to "Bilim Kurgu Dizileri"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val url = "${request.data}$page"
-        val res = app.get(url, headers = mapOf("Referer" to "$mainUrl/")).text
+        val res = app.get(
+            url,
+            headers = mapOf(
+                "User-Agent" to TURK_USER_AGENT,
+                "Referer" to "$mainUrl/"
+            )
+        ).text
         val doc = Jsoup.parse(res)
         val items = mutableListOf<SearchResponse>()
 
@@ -50,6 +59,7 @@ class SezonlukDizi : MainAPI() {
                 "$mainUrl/ajax/arama.asp",
                 data = mapOf("q" to query.trim()),
                 headers = mapOf(
+                    "User-Agent" to TURK_USER_AGENT,
                     "Referer" to "$mainUrl/",
                     "X-Requested-With" to "XMLHttpRequest"
                 )
@@ -70,17 +80,24 @@ class SezonlukDizi : MainAPI() {
                 })
             }
         } catch (e: Exception) {
-            // Fallback to text search on main page
+            // Fallback
         }
         return items
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val res = app.get(url, headers = mapOf("Referer" to "$mainUrl/")).text
+        val res = app.get(
+            url,
+            headers = mapOf(
+                "User-Agent" to TURK_USER_AGENT,
+                "Referer" to "$mainUrl/"
+            )
+        ).text
         val doc = Jsoup.parse(res)
 
         val title = doc.selectFirst("h1")?.text()?.replace(" izle", "")?.trim() ?: "Bilinmeyen Dizi"
-        val poster = cleanPosterUrl(doc.selectFirst(".afis img, .ui.image img, img"), mainUrl)
+        val poster = doc.selectFirst("meta[property='og:image']")?.attr("content")
+            ?: cleanPosterUrl(doc.selectFirst("img[data-src*='/i/dizi'], .afis img, .ui.image img, img"), mainUrl)
         val plot = doc.selectFirst("#ozet, .ozet, .description p")?.text()?.trim()
 
         val slug = url.substringAfter("/diziler/").substringBefore(".html")
@@ -88,13 +105,25 @@ class SezonlukDizi : MainAPI() {
         val episodes = mutableListOf<Episode>()
 
         try {
-            val bolumlerRes = app.get(bolumlerUrl, headers = mapOf("Referer" to url)).text
+            val bolumlerRes = app.get(
+                bolumlerUrl,
+                headers = mapOf(
+                    "User-Agent" to TURK_USER_AGENT,
+                    "Referer" to url
+                )
+            ).text
             val bolumDoc = Jsoup.parse(bolumlerRes)
 
             for (tr in bolumDoc.select("tr")) {
                 val epLink = tr.selectFirst("a[href*='-sezon-'][href*='-bolum.html']") ?: continue
                 val epHref = fixUrl(epLink.attr("href"))
-                val epName = tr.select("a").getOrNull(1)?.text()?.trim() ?: epLink.text().trim()
+                val allLinks = tr.select("a")
+                val epNameCandidate = allLinks.getOrNull(1)?.text()?.trim()
+                val epName = if (!epNameCandidate.isNullOrBlank() && epNameCandidate != epLink.text().trim()) {
+                    "${epLink.text().trim()} - $epNameCandidate"
+                } else {
+                    epLink.text().trim()
+                }
 
                 val match = Regex("""(\d+)-sezon-(\d+)-bolum""").find(epHref)
                 val season = match?.groupValues?.get(1)?.toIntOrNull() ?: 1
@@ -112,6 +141,24 @@ class SezonlukDizi : MainAPI() {
             // Ignore
         }
 
+        if (episodes.isEmpty()) {
+            for (a in doc.select("a[href*='-sezon-'][href*='-bolum.html']")) {
+                val epHref = fixUrl(a.attr("href"))
+                val epName = a.text().trim()
+                val match = Regex("""(\d+)-sezon-(\d+)-bolum""").find(epHref)
+                val season = match?.groupValues?.get(1)?.toIntOrNull() ?: 1
+                val episode = match?.groupValues?.get(2)?.toIntOrNull() ?: 1
+
+                episodes.add(
+                    newEpisode(epHref) {
+                        this.name = epName
+                        this.season = season
+                        this.episode = episode
+                    }
+                )
+            }
+        }
+
         return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.distinctBy { it.data }) {
             addPoster(poster, mainUrl)
             this.plot = plot
@@ -127,7 +174,13 @@ class SezonlukDizi : MainAPI() {
         var foundLinks = false
 
         try {
-            val res = app.get(data, headers = mapOf("Referer" to "$mainUrl/")).text
+            val res = app.get(
+                data,
+                headers = mapOf(
+                    "User-Agent" to TURK_USER_AGENT,
+                    "Referer" to "$mainUrl/"
+                )
+            ).text
             val bid = Regex("""bid=["'](\d+)["']""").find(res)?.groupValues?.get(1)
                 ?: Regex("""data-id=["'](\d+)["']""").find(res)?.groupValues?.get(1)
                 ?: return false
@@ -139,6 +192,7 @@ class SezonlukDizi : MainAPI() {
                         "$mainUrl/ajax/dataAlternatif22.asp",
                         data = mapOf("bid" to bid, "dil" to dil),
                         headers = mapOf(
+                            "User-Agent" to TURK_USER_AGENT,
                             "Referer" to data,
                             "X-Requested-With" to "XMLHttpRequest"
                         )
@@ -157,19 +211,68 @@ class SezonlukDizi : MainAPI() {
                                 "$mainUrl/ajax/dataEmbed22.asp",
                                 data = mapOf("id" to altId),
                                 headers = mapOf(
+                                    "User-Agent" to TURK_USER_AGENT,
                                     "Referer" to data,
                                     "X-Requested-With" to "XMLHttpRequest"
                                 )
                             ).text
 
-                            val iframeSrc = Regex("""src=["']([^"']+)["']""").find(embedRes)?.groupValues?.get(1) ?: continue
-                            if (iframeSrc.contains("reCAPTCHA") || iframeSrc.contains("engel.html")) continue
+                            var iframeSrc = Regex("""src=["']([^"']+)["']""").find(embedRes)?.groupValues?.get(1)
 
-                            val fullIframeUrl = if (iframeSrc.startsWith("//")) "https:$iframeSrc" else if (iframeSrc.startsWith("/")) "$mainUrl$iframeSrc" else iframeSrc
+                            if (iframeSrc != null && iframeSrc.contains("reCAPTCHA")) {
+                                try {
+                                    app.get(
+                                        "$mainUrl/ajax/reCAPTCHADATA.asp",
+                                        interceptor = cfInterceptor,
+                                        headers = mapOf(
+                                            "User-Agent" to TURK_USER_AGENT,
+                                            "Referer" to data
+                                        )
+                                    )
+                                    val retryEmbed = app.post(
+                                        "$mainUrl/ajax/dataEmbed22.asp",
+                                        data = mapOf("id" to altId),
+                                        headers = mapOf(
+                                            "User-Agent" to TURK_USER_AGENT,
+                                            "Referer" to data,
+                                            "X-Requested-With" to "XMLHttpRequest"
+                                        )
+                                    ).text
+                                    val retrySrc = Regex("""src=["']([^"']+)["']""").find(retryEmbed)?.groupValues?.get(1)
+                                    if (retrySrc != null && !retrySrc.contains("reCAPTCHA")) {
+                                        iframeSrc = retrySrc
+                                    }
+                                } catch (e: Exception) {
+                                    // Ignore webview resolution failure
+                                }
+                            }
 
-                            loadExtractor(fullIframeUrl, data, subtitleCallback) { link ->
-                                callback.invoke(link)
-                                foundLinks = true
+                            if (iframeSrc == null || iframeSrc.contains("reCAPTCHA") || iframeSrc.contains("engel.html")) {
+                                continue
+                            }
+
+                            val fullIframeUrl = if (iframeSrc.startsWith("//")) {
+                                "https:$iframeSrc"
+                            } else if (iframeSrc.startsWith("/")) {
+                                "$mainUrl$iframeSrc"
+                            } else {
+                                iframeSrc
+                            }
+
+                            val urlsToTry = mutableListOf(fullIframeUrl)
+                            if (fullIframeUrl.contains("byse")) {
+                                val fileCode = fullIframeUrl.substringAfter("/e/").substringBefore("?").substringBefore("\"").substringBefore("'").trimEnd('/')
+                                if (fileCode.isNotBlank()) {
+                                    urlsToTry.add("https://filemoon.to/e/$fileCode")
+                                    urlsToTry.add("https://filemoon.sx/e/$fileCode")
+                                }
+                            }
+
+                            for (tryUrl in urlsToTry) {
+                                loadExtractor(tryUrl, data, subtitleCallback) { link ->
+                                    callback.invoke(link)
+                                    foundLinks = true
+                                }
                             }
                         } catch (e: Exception) {
                             // Ignore single embed error
