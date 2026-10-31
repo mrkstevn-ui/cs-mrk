@@ -28,6 +28,7 @@ class SezonlukDizi : MainAPI() {
         val url = "${request.data}$page"
         val res = app.get(
             url,
+            interceptor = cfInterceptor,
             headers = mapOf(
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
@@ -58,6 +59,7 @@ class SezonlukDizi : MainAPI() {
             val res = app.post(
                 "$mainUrl/ajax/arama.asp",
                 data = mapOf("q" to query.trim()),
+                interceptor = cfInterceptor,
                 headers = mapOf(
                     "User-Agent" to TURK_USER_AGENT,
                     "Referer" to "$mainUrl/",
@@ -80,7 +82,32 @@ class SezonlukDizi : MainAPI() {
                 })
             }
         } catch (e: Exception) {
-            // Fallback
+            // Fallback: search via GET diziler.asp?q=
+            try {
+                val res = app.get(
+                    "$mainUrl/diziler.asp?q=${query.trim()}",
+                    interceptor = cfInterceptor,
+                    headers = mapOf(
+                        "User-Agent" to TURK_USER_AGENT,
+                        "Referer" to "$mainUrl/"
+                    )
+                ).text
+                val doc = Jsoup.parse(res)
+                for (a in doc.select("a.column[href^='/diziler/']")) {
+                    val href = fixUrl(a.attr("href"))
+                    val desc = a.selectFirst(".description")?.text()?.trim()
+                    val rawTitle = a.attr("title").replace(" izle", "").trim()
+                    val title = if (rawTitle.isNotEmpty()) rawTitle else (desc ?: "")
+                    if (title.isBlank()) continue
+                    val img = a.selectFirst("img")
+
+                    items.add(newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+                        addPoster(img, mainUrl)
+                    })
+                }
+            } catch (e2: Exception) {
+                // Ignore
+            }
         }
         return items
     }
@@ -88,6 +115,7 @@ class SezonlukDizi : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val res = app.get(
             url,
+            interceptor = cfInterceptor,
             headers = mapOf(
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
@@ -107,6 +135,7 @@ class SezonlukDizi : MainAPI() {
         try {
             val bolumlerRes = app.get(
                 bolumlerUrl,
+                interceptor = cfInterceptor,
                 headers = mapOf(
                     "User-Agent" to TURK_USER_AGENT,
                     "Referer" to url
@@ -176,6 +205,7 @@ class SezonlukDizi : MainAPI() {
         try {
             val res = app.get(
                 data,
+                interceptor = cfInterceptor,
                 headers = mapOf(
                     "User-Agent" to TURK_USER_AGENT,
                     "Referer" to "$mainUrl/"
@@ -191,6 +221,7 @@ class SezonlukDizi : MainAPI() {
                     val altRes = app.post(
                         "$mainUrl/ajax/dataAlternatif22.asp",
                         data = mapOf("bid" to bid, "dil" to dil),
+                        interceptor = cfInterceptor,
                         headers = mapOf(
                             "User-Agent" to TURK_USER_AGENT,
                             "Referer" to data,
@@ -210,6 +241,7 @@ class SezonlukDizi : MainAPI() {
                             val embedRes = app.post(
                                 "$mainUrl/ajax/dataEmbed22.asp",
                                 data = mapOf("id" to altId),
+                                interceptor = cfInterceptor,
                                 headers = mapOf(
                                     "User-Agent" to TURK_USER_AGENT,
                                     "Referer" to data,
@@ -232,6 +264,7 @@ class SezonlukDizi : MainAPI() {
                                     val retryEmbed = app.post(
                                         "$mainUrl/ajax/dataEmbed22.asp",
                                         data = mapOf("id" to altId),
+                                        interceptor = cfInterceptor,
                                         headers = mapOf(
                                             "User-Agent" to TURK_USER_AGENT,
                                             "Referer" to data,
