@@ -2,6 +2,7 @@ package com.turk
 
 import android.util.Base64
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.network.WebViewResolver
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -14,6 +15,8 @@ class FullHDFilmizlesene : MainAPI() {
     override var lang = "tr"
     override val hasQuickSearch = false
     override val supportedTypes = setOf(TvType.Movie)
+
+    private val cfInterceptor = WebViewResolver(Regex(""".*fullhdfilmizlesene.*"""))
 
     override val mainPage = mainPageOf(
         "$mainUrl/en-cok-izlenen-filmler" to "En Çok İzlenenler",
@@ -29,7 +32,11 @@ class FullHDFilmizlesene : MainAPI() {
             "${request.data}/$page"
         }
 
-        val document = app.get(targetUrl, headers = mapOf("Referer" to "$mainUrl/")).document
+        val document = app.get(
+            targetUrl,
+            interceptor = cfInterceptor,
+            headers = mapOf("Referer" to "$mainUrl/")
+        ).document
         val items = document.select("li.film").mapNotNull { card ->
             toSearchResult(card)
         }.distinctBy { it.url }
@@ -56,7 +63,7 @@ class FullHDFilmizlesene : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val encoded = query.trim().replace(" ", "+")
         val searchUrl = "$mainUrl/arama/$encoded"
-        val document = app.get(searchUrl, headers = mapOf("Referer" to "$mainUrl/")).document
+        val document = app.get(searchUrl, interceptor = cfInterceptor, headers = mapOf("Referer" to "$mainUrl/")).document
 
         return document.select("li.film").mapNotNull { card ->
             toSearchResult(card)
@@ -64,7 +71,7 @@ class FullHDFilmizlesene : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url, headers = mapOf("Referer" to "$mainUrl/")).document
+        val document = app.get(url, interceptor = cfInterceptor, headers = mapOf("Referer" to "$mainUrl/")).document
 
         val title = document.selectFirst("h1, .film-title, meta[property='og:title']")?.let {
             if (it.tagName() == "meta") it.attr("content") else it.text()
@@ -93,7 +100,7 @@ class FullHDFilmizlesene : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val filmPage = app.get(data, headers = mapOf("Referer" to "$mainUrl/")).text
+        val filmPage = app.get(data, interceptor = cfInterceptor, headers = mapOf("Referer" to "$mainUrl/")).text
 
         // Extract tokens from var scx = {...}
         val scxMatch = Regex("""var\s+scx\s*=\s*(\{.*?\});""", setOf(RegexOption.DOT_MATCHES_ALL)).find(filmPage)?.groupValues?.get(1)

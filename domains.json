@@ -2,11 +2,11 @@
   "HDFilmCehennemi": {
     "file": "TurkProviders/src/HDFilmCehennemi.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://www.hdfilmcehennemi.to",
+    "current_url": "https://www.hdfilmcehennemi2.biz",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
+      "https://www.hdfilmcehennemi2.biz",
       "https://www.hdfilmcehennemi.to",
-      "https://www.hdfilmcehennemi.cx",
       "https://www.hdfilmcehennemi.nl",
       "https://www.hdfilmcehennemi.top"
     ],
@@ -52,11 +52,11 @@
   "DiziBox": {
     "file": "TurkProviders/src/DiziBox.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://www.dizibox.to",
+    "current_url": "https://www.dizibox.live",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
-      "https://www.dizibox.to",
       "https://www.dizibox.live",
+      "https://www.dizibox.to",
       "https://www.dizibox.tv"
     ],
     "verification_keyword": "dizibox"
@@ -122,13 +122,12 @@
   "DiziPal": {
     "file": "TurkProviders/src/DiziPal.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://dizipal1592.com",
+    "current_url": "https://dizipal2145.com",
     "strategy": "numeric_increment",
     "pattern": "https://dizipal{num}.com",
     "mirrors": [
-      "https://dizipal1592.com",
-      "https://dizipal1591.com",
-      "https://dizipal1590.com"
+      "https://dizipal2145.com",
+      "https://dizipal1592.com"
     ],
     "verification_keyword": "dizipal"
   },

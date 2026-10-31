@@ -11,7 +11,7 @@ import org.mozilla.javascript.Scriptable
 import java.util.regex.Pattern
 
 class HDFilmCehennemi : MainAPI() {
-    override var mainUrl = "https://www.hdfilmcehennemi.to"
+    override var mainUrl = "https://www.hdfilmcehennemi2.biz"
     override var name = "HDFilmcehennemi"
     override val hasMainPage = true
     override var lang = "tr"
@@ -53,20 +53,21 @@ class HDFilmCehennemi : MainAPI() {
 
     // 1. ANA SAYFA KATEGORİLERİ
     override val mainPage = mainPageOf(
-        mainUrl to "Son Eklenen Filmler",
-        "$mainUrl/yabancidiziizle-5/" to "Yeni Eklenen Diziler",
-        "$mainUrl/category/tavsiye-filmler-izle2/" to "Tavsiye Edilen Filmler",
-        "$mainUrl/imdb-7-puan-uzeri-filmler-2/" to "IMDb 7+ Filmler",
-        "$mainUrl/dil/turkce-dublajli-film-izleyin-6/" to "Türkçe Dublaj Filmler",
-        "$mainUrl/dil/turkce-altyazili-filmleri-izleme-sitesi-3/" to "Türkçe Altyazılı Filmler"
+        "$mainUrl/filmler/" to "Son Eklenen Filmler",
+        "$mainUrl/dizi-izle/" to "Yeni Eklenen Diziler",
+        "$mainUrl/kesfet/" to "Keşfet",
+        "$mainUrl/yil/2026/" to "2026 Filmleri",
+        "$mainUrl/tur/aksiyon-filmleri-izle/" to "Aksiyon Filmleri",
+        "$mainUrl/tur/bilim-kurgu-filmleri-izle/" to "Bilim Kurgu Filmleri"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val targetUrl = if (page <= 1) request.data else "${request.data.removeSuffix("/")}/page/$page/"
         val doc = app.get(targetUrl, headers = standardHeaders).document
 
-        val movies = doc.select("a[href^=\"$mainUrl/\"]").filter {
-            it.selectFirst("img") != null && it.html().contains("poster")
+        val movies = doc.select("a[href^=\"$mainUrl/\"], a[href^=\"/\"]").filter {
+            val href = it.attr("href")
+            (href.contains("-izle") || href.contains("/dizi/")) && (it.selectFirst("img") != null || it.html().contains("poster"))
         }.mapNotNull { element ->
             toSearchResult(element)
         }.distinctBy { it.url }

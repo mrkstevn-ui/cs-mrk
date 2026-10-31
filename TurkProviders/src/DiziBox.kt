@@ -6,7 +6,7 @@ import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
 
 class DiziBox : MainAPI() {
-    override var mainUrl = "https://www.dizibox.to"
+    override var mainUrl = "https://www.dizibox.live"
     override var name = "DiziBOX"
     override val hasMainPage = true
     override var lang = "tr"
@@ -18,7 +18,10 @@ class DiziBox : MainAPI() {
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get(request.data).document
+        val document = app.get(
+            request.data,
+            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
+        ).document
         val items = mutableListOf<SearchResponse>()
 
         // Episode links on homepage
@@ -72,14 +75,14 @@ class DiziBox : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
+        val document = app.get(url, headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")).document
 
         // If the URL is an episode, check if there is a parent series link
         val parentSeriesUrl = document.selectFirst("a[href*='/diziler/']")?.attr("href")
         val isEpisodePage = url.contains("-sezon-") && !url.contains("/diziler/")
 
         if (isEpisodePage && !parentSeriesUrl.isNullOrBlank()) {
-            val showDoc = app.get(fixUrl(parentSeriesUrl)).document
+            val showDoc = app.get(fixUrl(parentSeriesUrl), headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")).document
             return parseShowPage(showDoc, fixUrl(parentSeriesUrl))
         }
 
@@ -124,7 +127,7 @@ class DiziBox : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val document = app.get(data).document
+        val document = app.get(data, headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")).document
         var foundAny = false
 
         // Extract king.php player
