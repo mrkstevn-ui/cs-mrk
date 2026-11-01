@@ -3,6 +3,7 @@ package com.turk
 import android.util.Base64
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.network.WebViewResolver
 import com.lagradost.cloudstream3.utils.*
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
@@ -20,13 +21,22 @@ class DiziFilmizle : MainAPI() {
     override val hasQuickSearch = true
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
 
+    private val cfInterceptor = WebViewResolver(Regex(""".*dizifilmizle.*"""))
+
     override val mainPage = mainPageOf(
         "$mainUrl/turkce-dublaj-filmler" to "Yeni Filmler",
         "$mainUrl/yabanci-dizi-izle" to "Yabancı Diziler"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get(request.data).document
+        val document = app.get(
+            request.data,
+            interceptor = cfInterceptor,
+            headers = mapOf(
+                "User-Agent" to TURK_USER_AGENT,
+                "Referer" to "$mainUrl/"
+            )
+        ).document
         val items = mutableListOf<SearchResponse>()
 
         document.select("a[href*='/film/'], a[href*='/dizi/']").forEach { a ->
@@ -72,8 +82,9 @@ class DiziFilmizle : MainAPI() {
         return try {
             val json = app.get(
                 searchUrl,
+                interceptor = cfInterceptor,
                 headers = mapOf(
-                    "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "User-Agent" to TURK_USER_AGENT,
                     "Referer" to "$mainUrl/"
                 )
             ).text
@@ -101,7 +112,14 @@ class DiziFilmizle : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
+        val document = app.get(
+            url,
+            interceptor = cfInterceptor,
+            headers = mapOf(
+                "User-Agent" to TURK_USER_AGENT,
+                "Referer" to "$mainUrl/"
+            )
+        ).document
         val isSeries = url.contains("/dizi/")
 
         val title = document.selectFirst("h1, meta[property='og:title']")?.let {
@@ -152,7 +170,14 @@ class DiziFilmizle : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val document = app.get(data).document
+        val document = app.get(
+            data,
+            interceptor = cfInterceptor,
+            headers = mapOf(
+                "User-Agent" to TURK_USER_AGENT,
+                "Referer" to "$mainUrl/"
+            )
+        ).document
         val html = document.html()
         var foundAny = false
 

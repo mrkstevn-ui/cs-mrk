@@ -2,6 +2,7 @@ package com.turk
 
 import android.util.Base64
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.network.WebViewResolver
 import com.lagradost.cloudstream3.utils.*
 import org.json.JSONObject
 import org.jsoup.Jsoup
@@ -15,6 +16,8 @@ class SetFilmIzle : MainAPI() {
     override val hasQuickSearch = false
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
 
+    private val cfInterceptor = WebViewResolver(Regex(""".*setfilmizle.*"""))
+
     override val mainPage = mainPageOf(
         "$mainUrl/film/page/" to "Son Eklenen Filmler",
         "$mainUrl/dizi/page/" to "Yabancı Diziler",
@@ -26,7 +29,11 @@ class SetFilmIzle : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val url = "${request.data}$page/"
-        val res = app.get(url, headers = mapOf("Referer" to "$mainUrl/")).text
+        val res = app.get(
+            url,
+            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
+            interceptor = cfInterceptor
+        ).text
         val doc = Jsoup.parse(res)
         val items = mutableListOf<SearchResponse>()
 
@@ -55,7 +62,11 @@ class SetFilmIzle : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/?s=${query.trim().replace(" ", "+")}"
-        val res = app.get(url, headers = mapOf("Referer" to "$mainUrl/")).text
+        val res = app.get(
+            url,
+            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
+            interceptor = cfInterceptor
+        ).text
         val doc = Jsoup.parse(res)
         val items = mutableListOf<SearchResponse>()
 
@@ -83,7 +94,11 @@ class SetFilmIzle : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val res = app.get(url, headers = mapOf("Referer" to "$mainUrl/")).text
+        val res = app.get(
+            url,
+            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
+            interceptor = cfInterceptor
+        ).text
         val doc = Jsoup.parse(res)
 
         val title = doc.selectFirst("h1.stf-title, h1")?.text()?.trim() ?: "Bilinmeyen Başlık"
@@ -159,7 +174,11 @@ class SetFilmIzle : MainAPI() {
         var foundLinks = false
 
         try {
-            val res = app.get(data, headers = mapOf("Referer" to "$mainUrl/")).text
+            val res = app.get(
+                data,
+                headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
+                interceptor = cfInterceptor
+            ).text
             val postId = Regex("""data-post-id=["'](\d+)["']""").find(res)?.groupValues?.get(1) ?: return false
             val nonce = Regex("""video:\s*["']([a-f0-9]+)["']""").find(res)?.groupValues?.get(1) ?: return false
 
@@ -181,9 +200,11 @@ class SetFilmIzle : MainAPI() {
                             "part_key" to ""
                         ),
                         headers = mapOf(
+                            "User-Agent" to TURK_USER_AGENT,
                             "Referer" to data,
                             "X-Requested-With" to "XMLHttpRequest"
-                        )
+                        ),
+                        interceptor = cfInterceptor
                     ).text
 
                     val ajaxJson = JSONObject(ajaxRes)

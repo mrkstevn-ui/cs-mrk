@@ -1,6 +1,7 @@
 package com.turk
 
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.network.WebViewResolver
 import com.lagradost.cloudstream3.utils.*
 import org.json.JSONArray
 import org.jsoup.Jsoup
@@ -13,6 +14,8 @@ class DiziYou : MainAPI() {
     override var lang = "tr"
     override val hasQuickSearch = false
     override val supportedTypes = setOf(TvType.TvSeries, TvType.Movie)
+
+    private val cfInterceptor = WebViewResolver(Regex(""".*diziyou.*"""))
 
     override val mainPage = mainPageOf(
         "$mainUrl/diziler/page/" to "Diziler",
@@ -31,7 +34,14 @@ class DiziYou : MainAPI() {
             "${request.data}$page/"
         }
 
-        val document = app.get(targetUrl, headers = mapOf("Referer" to "$mainUrl/")).document
+        val document = app.get(
+            targetUrl,
+            interceptor = cfInterceptor,
+            headers = mapOf(
+                "User-Agent" to TURK_USER_AGENT,
+                "Referer" to "$mainUrl/"
+            )
+        ).document
 
         val items = document.select("article.card").mapNotNull { card ->
             toSearchResult(card)
@@ -66,7 +76,14 @@ class DiziYou : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val searchUrl = "$mainUrl/?s=${query.trim().replace(" ", "+")}"
-        val document = app.get(searchUrl, headers = mapOf("Referer" to "$mainUrl/")).document
+        val document = app.get(
+            searchUrl,
+            interceptor = cfInterceptor,
+            headers = mapOf(
+                "User-Agent" to TURK_USER_AGENT,
+                "Referer" to "$mainUrl/"
+            )
+        ).document
 
         return document.select("article.card, a[href*='/dizi/'], a[href*='/film/']").mapNotNull { card ->
             if (card.tagName() == "a") {
@@ -91,7 +108,14 @@ class DiziYou : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url, headers = mapOf("Referer" to "$mainUrl/")).document
+        val document = app.get(
+            url,
+            interceptor = cfInterceptor,
+            headers = mapOf(
+                "User-Agent" to TURK_USER_AGENT,
+                "Referer" to "$mainUrl/"
+            )
+        ).document
 
         val title = document.selectFirst("h1, .dizi-title, meta[property='og:title']")?.let {
             if (it.tagName() == "meta") it.attr("content") else it.text()
@@ -175,7 +199,14 @@ class DiziYou : MainAPI() {
         var foundLinks = false
 
         try {
-            val response = app.get(data, headers = mapOf("Referer" to "$mainUrl/"))
+            val response = app.get(
+                data,
+                interceptor = cfInterceptor,
+                headers = mapOf(
+                    "User-Agent" to TURK_USER_AGENT,
+                    "Referer" to "$mainUrl/"
+                )
+            )
             val html = response.text
             val doc = Jsoup.parse(html)
 

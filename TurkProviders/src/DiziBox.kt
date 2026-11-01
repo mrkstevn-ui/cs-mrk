@@ -2,6 +2,7 @@ package com.turk
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.network.WebViewResolver
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
 
@@ -13,6 +14,8 @@ class DiziBox : MainAPI() {
     override val hasQuickSearch = true
     override val supportedTypes = setOf(TvType.TvSeries)
 
+    private val cfInterceptor = WebViewResolver(Regex(""".*dizibox.*"""))
+
     override val mainPage = mainPageOf(
         "$mainUrl/" to "Son Eklenen Bölümler"
     )
@@ -20,7 +23,8 @@ class DiziBox : MainAPI() {
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get(
             request.data,
-            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
+            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
+            interceptor = cfInterceptor
         ).document
         val items = mutableListOf<SearchResponse>()
 
@@ -56,10 +60,11 @@ class DiziBox : MainAPI() {
             val resp = app.get(
                 ajaxUrl,
                 headers = mapOf(
-                    "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "User-Agent" to TURK_USER_AGENT,
                     "X-Requested-With" to "XMLHttpRequest",
                     "Referer" to "$mainUrl/"
-                )
+                ),
+                interceptor = cfInterceptor
             ).text
             val data = AppUtils.parseJson<DwlsResponse>(resp)
             data.results?.mapNotNull { r ->
@@ -75,14 +80,22 @@ class DiziBox : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url, headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")).document
+        val document = app.get(
+            url,
+            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
+            interceptor = cfInterceptor
+        ).document
 
         // If the URL is an episode, check if there is a parent series link
         val parentSeriesUrl = document.selectFirst("a[href*='/diziler/']")?.attr("href")
         val isEpisodePage = url.contains("-sezon-") && !url.contains("/diziler/")
 
         if (isEpisodePage && !parentSeriesUrl.isNullOrBlank()) {
-            val showDoc = app.get(fixUrl(parentSeriesUrl), headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")).document
+            val showDoc = app.get(
+                fixUrl(parentSeriesUrl),
+                headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
+                interceptor = cfInterceptor
+            ).document
             return parseShowPage(showDoc, fixUrl(parentSeriesUrl))
         }
 
@@ -127,7 +140,11 @@ class DiziBox : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val document = app.get(data, headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")).document
+        val document = app.get(
+            data,
+            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
+            interceptor = cfInterceptor
+        ).document
         var foundAny = false
 
         // Extract king.php player

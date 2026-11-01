@@ -1,6 +1,8 @@
 package com.turk
 
+import android.util.Base64
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.network.WebViewResolver
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -12,6 +14,8 @@ class HDFilmDelisi : MainAPI() {
     override var lang = "tr"
     override val hasQuickSearch = false
     override val supportedTypes = setOf(TvType.Movie)
+
+    private val cfInterceptor = WebViewResolver(Regex(""".*hdfilmdelisi.*"""))
 
     override val mainPage = mainPageOf(
         "$mainUrl/" to "Son Eklenen Filmler",
@@ -27,7 +31,14 @@ class HDFilmDelisi : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val targetUrl = request.data
-        val document = app.get(targetUrl, headers = mapOf("Referer" to "$mainUrl/")).document
+        val document = app.get(
+            targetUrl,
+            interceptor = cfInterceptor,
+            headers = mapOf(
+                "User-Agent" to TURK_USER_AGENT,
+                "Referer" to "$mainUrl/"
+            )
+        ).document
 
         val items = document.select("a[href*='/film/']").mapNotNull { card ->
             toSearchResult(card)
@@ -60,7 +71,14 @@ class HDFilmDelisi : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val searchUrl = "$mainUrl/?s=${query.trim().replace(" ", "+")}"
-        val document = app.get(searchUrl, headers = mapOf("Referer" to "$mainUrl/")).document
+        val document = app.get(
+            searchUrl,
+            interceptor = cfInterceptor,
+            headers = mapOf(
+                "User-Agent" to TURK_USER_AGENT,
+                "Referer" to "$mainUrl/"
+            )
+        ).document
 
         return document.select("a[href*='/film/']").mapNotNull { card ->
             toSearchResult(card)
@@ -68,7 +86,14 @@ class HDFilmDelisi : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url, headers = mapOf("Referer" to "$mainUrl/")).document
+        val document = app.get(
+            url,
+            interceptor = cfInterceptor,
+            headers = mapOf(
+                "User-Agent" to TURK_USER_AGENT,
+                "Referer" to "$mainUrl/"
+            )
+        ).document
 
         val rawTitle = document.selectFirst("h1")?.text()
             ?: document.selectFirst("meta[property='og:title']")?.attr("content")
@@ -97,6 +122,52 @@ class HDFilmDelisi : MainAPI() {
         }
     }
 
+    private fun deobfuscateVixolity(hex: String, shift: Int): String {
+        val raw = StringBuilder()
+        for (i in 0 until hex.length step 2) {
+            val part = hex.substring(i, i + 2)
+            raw.append(part.toInt(16).toChar())
+        }
+        val rev = raw.reverse().toString()
+        val decodedBytes = Base64.decode(rev, Base64.DEFAULT)
+        val decodedStr = String(decodedBytes, Charsets.ISO_8859_1)
+        val sb = StringBuilder()
+        for (ch in decodedStr) {
+            sb.append((ch.code - shift).toChar())
+        }
+        return sb.toString()
+    }
+
+    private fun unescapeHex(st: String): String {
+        val sb = StringBuilder()
+        var i = 0
+        val len = st.length
+        while (i < len) {
+            val ch = st[i]
+            if (ch == '\\' && i + 1 < len) {
+                val next = st[i + 1]
+                if (next == 'x' && i + 3 < len) {
+                    val hex = st.substring(i + 2, i + 4)
+                    sb.append(hex.toInt(16).toChar())
+                    i += 4
+                    continue
+                } else if (next == 'u' && i + 5 < len) {
+                    val hex = st.substring(i + 2, i + 6)
+                    sb.append(hex.toInt(16).toChar())
+                    i += 6
+                    continue
+                } else {
+                    sb.append(next)
+                    i += 2
+                    continue
+                }
+            }
+            sb.append(ch)
+            i++
+        }
+        return sb.toString()
+    }
+
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
@@ -106,58 +177,80 @@ class HDFilmDelisi : MainAPI() {
         var foundLinks = false
 
         try {
-            val response = app.get(data, headers = mapOf("Referer" to "$mainUrl/"))
+            val response = app.get(
+                data,
+                interceptor = cfInterceptor,
+                headers = mapOf(
+                    "User-Agent" to TURK_USER_AGENT,
+                    "Referer" to "$mainUrl/"
+                )
+            )
             val html = response.text
 
-            // 1. Check direct MP4 links in HTML
-            val mp4Matches = Regex("""https?://hdfilmdelisi\.one/vids/[^\s"'<>]+\.mp4""").findAll(html)
-            for (match in mp4Matches) {
-                val mp4Url = match.value
-                callback.invoke(
-                    ExtractorLink(
-                        name = this.name,
-                        source = this.name,
-                        url = mp4Url,
-                        referer = "$mainUrl/",
-                        quality = Qualities.P1080.value,
-                        type = ExtractorLinkType.VIDEO
-                    )
-                )
-                foundLinks = true
-            }
-
-            // 2. Check embed links
-            val embedMatches = Regex("""https?://hdfilmdelisi\.one/embed/[^\s"'<>]+""").findAll(html)
-            for (match in embedMatches) {
+            // 1. Extract real Vixolity player from Next.js payload
+            val videoUrl = Regex("""videoUrl[^:]*:\s*\\*["'](https?://[^"'\\]+)""").find(html)?.groupValues?.get(1)
+            if (videoUrl != null) {
                 try {
-                    val embedUrl = match.value
-                    val embedDoc = app.get(embedUrl, headers = mapOf("Referer" to data)).document
-                    val sourceEl = embedDoc.selectFirst("video source")
-                    val src = sourceEl?.attr("src")
-                    if (src != null && src.isNotBlank()) {
-                        val videoUrl = fixUrl(src)
-                        callback.invoke(
-                            ExtractorLink(
-                                name = this.name,
-                                source = "${this.name} Direct",
-                                url = videoUrl,
-                                referer = "$mainUrl/",
-                                quality = Qualities.P1080.value,
-                                type = ExtractorLinkType.VIDEO
-                            )
+                    val vixDoc = app.get(
+                        videoUrl,
+                        headers = mapOf(
+                            "Referer" to "$mainUrl/",
+                            "User-Agent" to TURK_USER_AGENT
                         )
-                        foundLinks = true
+                    ).text
+
+                    val sm = Regex("""\}\)\('([a-f0-9]+)',\s*(\d+)\);""").find(vixDoc)
+                    if (sm != null) {
+                        val hexStr = sm.groupValues[1]
+                        val shift = sm.groupValues[2].toInt()
+                        val unpacked = deobfuscateVixolity(hexStr, shift)
+                        val fileMatch = Regex("""file:\s*['"]([^'"]+)['"]""").find(unpacked)?.groupValues?.get(1)
+                        if (fileMatch != null) {
+                            val streamUrl = unescapeHex(fileMatch)
+                            val m3u8Links = M3u8Helper.generateM3u8(
+                                source = this.name,
+                                name = this.name,
+                                streamUrl = streamUrl,
+                                referer = "https://pl.vixolity.com/",
+                                headers = mapOf(
+                                    "Referer" to "https://pl.vixolity.com/",
+                                    "User-Agent" to TURK_USER_AGENT
+                                )
+                            )
+                            if (m3u8Links.isNotEmpty()) {
+                                m3u8Links.forEach { link ->
+                                    callback.invoke(link)
+                                    foundLinks = true
+                                }
+                            } else {
+                                callback.invoke(
+                                    ExtractorLink(
+                                        name = "${this.name} HLS",
+                                        source = this.name,
+                                        url = streamUrl,
+                                        referer = "https://pl.vixolity.com/",
+                                        quality = Qualities.P1080.value,
+                                        type = ExtractorLinkType.M3U8,
+                                        headers = mapOf(
+                                            "Referer" to "https://pl.vixolity.com/",
+                                            "User-Agent" to TURK_USER_AGENT
+                                        )
+                                    )
+                                )
+                                foundLinks = true
+                            }
+                        }
                     }
                 } catch (e: Exception) {
-                    // Ignore embed error
+                    // Ignore vixolity extraction error
                 }
             }
 
-            // 3. Fallback to standard iframes
+            // 2. Fallback to standard iframes (skip honeypots and ads)
             val doc = Jsoup.parse(html)
             doc.select("iframe").forEach { iframe ->
                 val src = fixUrlNull(iframe.attr("src").ifBlank { iframe.attr("data-src") })
-                if (src != null && src.startsWith("http") && !src.contains("izlegec.com")) {
+                if (src != null && src.startsWith("http") && !src.contains("izlegec.com") && !src.contains("hdfilmdelisi.one/embed/")) {
                     val loaded = loadExtractor(src, "$mainUrl/", subtitleCallback, callback)
                     if (loaded) {
                         foundLinks = true
