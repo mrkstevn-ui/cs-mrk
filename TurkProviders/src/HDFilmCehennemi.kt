@@ -1,6 +1,7 @@
 package com.turk
 
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.network.WebViewResolver
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -11,14 +12,16 @@ import org.mozilla.javascript.Scriptable
 import java.util.regex.Pattern
 
 class HDFilmCehennemi : MainAPI() {
-    override var mainUrl = "https://www.hdfilmcehennemi2.biz"
+    override var mainUrl = "https://www.hdfilmcehennemi.nl"
     override var name = "HDFilmcehennemi"
     override val hasMainPage = true
     override var lang = "tr"
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
 
+    private val cfInterceptor = WebViewResolver(Regex(""".*hdfilmcehennemi.*"""))
+
     private val standardHeaders = mapOf(
-        "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "User-Agent" to TURK_USER_AGENT
     )
 
     // Afişleri yüksek çözünürlüğe çeviren fonksiyon
@@ -63,7 +66,7 @@ class HDFilmCehennemi : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val targetUrl = if (page <= 1) request.data else "${request.data.removeSuffix("/")}/page/$page/"
-        val doc = app.get(targetUrl, headers = standardHeaders).document
+        val doc = app.get(targetUrl, headers = standardHeaders, interceptor = cfInterceptor).document
 
         val movies = doc.select("a[href^=\"$mainUrl/\"], a[href^=\"/\"]").filter {
             val href = it.attr("href")
@@ -84,7 +87,7 @@ class HDFilmCehennemi : MainAPI() {
         )
 
         return try {
-            val res = app.get(searchUrl, headers = searchHeaders).text
+            val res = app.get(searchUrl, headers = searchHeaders, interceptor = cfInterceptor).text
             val json = JSONObject(res)
             val resultsArray = json.optJSONArray("results") ?: return emptyList()
 
@@ -120,7 +123,7 @@ class HDFilmCehennemi : MainAPI() {
 
     // 3. FİLM VE DİZİ DETAY SAYFASI
     override suspend fun load(url: String): LoadResponse {
-        val doc = app.get(url, headers = standardHeaders).document
+        val doc = app.get(url, headers = standardHeaders, interceptor = cfInterceptor).document
         val title = doc.selectFirst("h1")?.text()?.replace(" izle", "")?.trim() ?: "Film"
         val img = doc.selectFirst("div.poster img, img.poster, img")
         val poster = fixHdPosterUrl(cleanPosterUrl(img, mainUrl)) ?: doc.selectFirst("meta[property='og:image']")?.attr("content")
@@ -161,7 +164,7 @@ class HDFilmCehennemi : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val html = app.get(data, headers = standardHeaders).text
+        val html = app.get(data, headers = standardHeaders, interceptor = cfInterceptor).text
         val doc = Jsoup.parse(html)
         var foundAny = false
 
@@ -262,8 +265,13 @@ class HDFilmCehennemi : MainAPI() {
             doc.select("iframe").forEach { iframe ->
                 val src = fixUrlNull(iframe.attr("data-src").ifEmpty { iframe.attr("src") }) ?: return@forEach
                 if (!src.contains("youtube.com") && !src.contains("google.com")) {
-                    loadExtractor(src, data, subtitleCallback, callback)
-                    foundAny = true
+                    if (src.contains("hdfilmcehennemi.mobi/video/embed/") || src.contains("/rplayer/")) {
+                        resolveMobiEmbed(src, "Ana Sunucu", subtitleCallback, callback)
+                        foundAny = true
+                    } else {
+                        loadExtractor(src, data, subtitleCallback, callback)
+                        foundAny = true
+                    }
                 }
             }
         }

@@ -56,7 +56,7 @@ class SezonlukDizi : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val items = mutableListOf<SearchResponse>()
         try {
-            val res = app.post(
+            val resp = app.post(
                 "$mainUrl/ajax/arama.asp",
                 data = mapOf("q" to query.trim()),
                 interceptor = cfInterceptor,
@@ -65,7 +65,12 @@ class SezonlukDizi : MainAPI() {
                     "Referer" to "$mainUrl/",
                     "X-Requested-With" to "XMLHttpRequest"
                 )
-            ).text
+            )
+            val res = try {
+                String(resp.body.bytes(), java.nio.charset.Charset.forName("ISO-8859-9"))
+            } catch (e: Exception) {
+                resp.text
+            }
 
             val json = JSONObject(res)
             val results = json.optJSONObject("results") ?: return items
