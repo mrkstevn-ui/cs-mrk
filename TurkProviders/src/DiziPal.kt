@@ -84,15 +84,16 @@ class DiziPal : MainAPI() {
         val results = mutableListOf<SearchResponse>()
 
         try {
-            val document = app.get(searchUrl, interceptor = cfInterceptor, headers = mapOf("Referer" to "$mainUrl/")).document
-            document.select("article.content-card, li.content-card, .card-link, a[href*='/film/'], a[href*='/dizi/']").forEach { card ->
+            val document = app.get(searchUrl, interceptor = cfInterceptor, headers = mapOf("Referer" to "$mainUrl/")).document.cleanNoise()
+            val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, main") ?: document
+            container.select("article.content-card, li.content-card, .card-link, a[href*='/film/'], a[href*='/dizi/']").forEach { card ->
                 toSearchResult(card)?.let { results.add(it) }
             }
         } catch (e: Exception) {
             // fallback
         }
 
-        return results.distinctBy { it.url }
+        return results.filter { it.isMatch(query) }.distinctBy { it.url }
     }
 
     override suspend fun load(url: String): LoadResponse {

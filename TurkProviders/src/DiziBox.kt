@@ -70,6 +70,7 @@ class DiziBox : MainAPI() {
             data.results?.mapNotNull { r ->
                 val link = r.permalink ?: return@mapNotNull null
                 val title = r.postTitle ?: "Dizi"
+                if (!isSearchMatch(title, link, query)) return@mapNotNull null
                 newTvSeriesSearchResponse(title, link, TvType.TvSeries) {
                     addPoster(r.image, mainUrl)
                 }

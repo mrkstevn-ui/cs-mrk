@@ -67,14 +67,16 @@ class SetFilmIzle : MainAPI() {
             headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
             interceptor = cfInterceptor
         ).text
-        val doc = Jsoup.parse(res)
+        val doc = Jsoup.parse(res).cleanNoise()
         val items = mutableListOf<SearchResponse>()
 
-        for (cardLink in doc.select("a.card-link")) {
+        val container = doc.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items") ?: doc
+        for (cardLink in container.select("a.card-link")) {
             val href = cardLink.attr("href")
             val article = cardLink.selectFirst("article.card") ?: continue
             val title = article.selectFirst(".card-ad, h2, h3")?.text()?.trim()
                 ?: article.selectFirst("img")?.attr("alt")?.trim() ?: continue
+            if (!isSearchMatch(title, href, query)) continue
             val img = article.selectFirst("img")
             val isTv = href.contains("/dizi/")
             val tvType = if (isTv) TvType.TvSeries else TvType.Movie
@@ -90,7 +92,7 @@ class SetFilmIzle : MainAPI() {
             }
         }
 
-        return items
+        return items.distinctBy { it.url }
     }
 
     override suspend fun load(url: String): LoadResponse {

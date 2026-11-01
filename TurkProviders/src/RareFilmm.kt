@@ -60,11 +60,12 @@ class RareFilmm : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val searchUrl = "$mainUrl/?s=${query.trim().replace(" ", "+")}"
-        val document = app.get(searchUrl, headers = mapOf("Referer" to "$mainUrl/")).document
+        val document = app.get(searchUrl, headers = mapOf("Referer" to "$mainUrl/")).document.cleanNoise()
+        val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, main") ?: document
 
-        return document.select("div.post, article.excerpt, .entry-header").mapNotNull { card ->
+        return container.select("div.post, article.excerpt, .entry-header").mapNotNull { card ->
             toSearchResult(card)
-        }.distinctBy { it.url }
+        }.filter { it.isMatch(query) }.distinctBy { it.url }
     }
 
     override suspend fun load(url: String): LoadResponse {

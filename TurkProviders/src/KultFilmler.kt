@@ -51,10 +51,11 @@ class KultFilmler : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val searchUrl = "$mainUrl/?s=${query.replace(" ", "+")}"
-        val document = app.get(searchUrl).document
-        return document.select("a.mcard").mapNotNull { card ->
+        val document = app.get(searchUrl).document.cleanNoise()
+        val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, main") ?: document
+        return container.select("a.mcard").mapNotNull { card ->
             toSearchResult(card)
-        }
+        }.filter { it.isMatch(query) }.distinctBy { it.url }
     }
 
     override suspend fun load(url: String): LoadResponse {

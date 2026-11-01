@@ -83,13 +83,15 @@ class DiziYou : MainAPI() {
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
             )
-        ).document
+        ).document.cleanNoise()
 
-        return document.select("article.card, a[href*='/dizi/'], a[href*='/film/']").mapNotNull { card ->
+        val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, main") ?: document
+        return container.select("article.card, a[href*='/dizi/'], a[href*='/film/']").mapNotNull { card ->
             if (card.tagName() == "a") {
                 val href = fixUrlNull(card.attr("href")) ?: return@mapNotNull null
                 val isMovie = href.contains("/film/")
                 val title = card.text().replace("izle", "", ignoreCase = true).trim().ifEmpty { return@mapNotNull null }
+                if (!isSearchMatch(title, href, query)) return@mapNotNull null
                 val poster = card.selectFirst("img")?.attr("src")
 
                 if (isMovie) {
@@ -104,7 +106,7 @@ class DiziYou : MainAPI() {
             } else {
                 toSearchResult(card)
             }
-        }.distinctBy { it.url }
+        }.filter { it.isMatch(query) }.distinctBy { it.url }
     }
 
     override suspend fun load(url: String): LoadResponse {

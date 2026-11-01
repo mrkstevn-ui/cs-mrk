@@ -95,6 +95,7 @@ class HDFilmCehennemi : MainAPI() {
                 val link = doc.selectFirst("a")?.attr("href") ?: continue
                 val title = doc.selectFirst("h4.title")?.text() 
                     ?: doc.selectFirst("img")?.attr("alt") ?: "Film"
+                if (!isSearchMatch(title, link, query)) continue
                 val img = doc.selectFirst("img")
                 val poster = fixHdPosterUrl(cleanPosterUrl(img, mainUrl))
 

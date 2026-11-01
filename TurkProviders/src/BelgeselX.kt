@@ -57,7 +57,7 @@ class BelgeselX : MainAPI() {
                         ?: a.selectFirst("img")?.attr("alt")?.trim()
                         ?: a.text().trim()
 
-                    if (title.lowercase().contains(qLower) || href.lowercase().contains(qLower)) {
+                    if (isSearchMatch(title, href, query)) {
                         val img = a.selectFirst("img")
                         results.add(newTvSeriesSearchResponse(title, href, TvType.Documentary) {
                             addPoster(img, mainUrl)

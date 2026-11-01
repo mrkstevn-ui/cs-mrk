@@ -89,6 +89,7 @@ class FilmModu : MainAPI() {
             doc.select("a.search_s").mapNotNull { a ->
                 val href = fixUrlNull(a.attr("href")) ?: return@mapNotNull null
                 val title = a.selectFirst(".title")?.text()?.ifEmpty { a.attr("title") } ?: a.attr("title")
+                if (!isSearchMatch(title, href, query)) return@mapNotNull null
                 val poster = a.selectFirst("img")?.attr("src")?.replace("_m.", "_xl.")
                 newMovieSearchResponse(title.trim(), href, TvType.Movie) {
                     addPoster(poster, mainUrl)

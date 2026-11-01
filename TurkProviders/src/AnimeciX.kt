@@ -99,6 +99,7 @@ class AnimeciX : MainAPI() {
             data.results?.mapNotNull { r ->
                 val id = r.id ?: return@mapNotNull null
                 val title = r.name ?: "Anime"
+                if (!isSearchMatch(title, "$mainUrl/titles/$id", query)) return@mapNotNull null
                 newAnimeSearchResponse(title, "$mainUrl/titles/$id", TvType.Anime) {
                     addPoster(r.poster, mainUrl)
                 }

@@ -75,6 +75,7 @@ class SezonlukDizi : MainAPI() {
                 val item = diziler.getJSONObject(i)
                 val title = item.optString("title").replace(Regex("""\(\d+\)"""), "").trim()
                 val url = fixUrl(item.optString("url"))
+                if (!isSearchMatch(title, url, query)) continue
                 val img = item.optString("image")
 
                 items.add(newTvSeriesSearchResponse(title, url, TvType.TvSeries) {
@@ -92,13 +93,14 @@ class SezonlukDizi : MainAPI() {
                         "Referer" to "$mainUrl/"
                     )
                 ).text
-                val doc = Jsoup.parse(res)
+                val doc = Jsoup.parse(res).cleanNoise()
                 for (a in doc.select("a.column[href^='/diziler/']")) {
                     val href = fixUrl(a.attr("href"))
                     val desc = a.selectFirst(".description")?.text()?.trim()
                     val rawTitle = a.attr("title").replace(" izle", "").trim()
                     val title = if (rawTitle.isNotEmpty()) rawTitle else (desc ?: "")
                     if (title.isBlank()) continue
+                    if (!isSearchMatch(title, href, query)) continue
                     val img = a.selectFirst("img")
 
                     items.add(newTvSeriesSearchResponse(title, href, TvType.TvSeries) {

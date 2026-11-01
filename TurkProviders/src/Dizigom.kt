@@ -75,10 +75,11 @@ class Dizigom : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         return try {
             val searchUrl = "$mainUrl/ara?q=${query.trim().replace(" ", "+")}"
-            val doc = app.get(searchUrl, headers = standardHeaders).document
-            doc.select("a.group.block, a.group[href*='/diziler/'], a.group[href*='/film/'], a.group[href*='/anime/']").mapNotNull {
+            val doc = app.get(searchUrl, headers = standardHeaders).document.cleanNoise()
+            val container = doc.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, main") ?: doc
+            container.select("a.group.block, a.group[href*='/diziler/'], a.group[href*='/film/'], a.group[href*='/anime/']").mapNotNull {
                 toSearchResult(it)
-            }.distinctBy { it.url }
+            }.filter { it.isMatch(query) }.distinctBy { it.url }
         } catch (e: Exception) {
             emptyList()
         }

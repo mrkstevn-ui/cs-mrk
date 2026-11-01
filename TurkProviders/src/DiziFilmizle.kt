@@ -94,6 +94,7 @@ class DiziFilmizle : MainAPI() {
                 val isSeries = r.type == "dizi"
                 val href = if (isSeries) "$mainUrl/dizi/$slug" else "$mainUrl/film/$slug"
                 val title = r.title ?: r.originalTitle ?: "Film"
+                if (!isSearchMatch(title, href, query) && !matchesQuery(r.originalTitle, query)) return@mapNotNull null
                 val poster = r.posterUrl
 
                 if (isSeries) {

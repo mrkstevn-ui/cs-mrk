@@ -78,11 +78,12 @@ class HDFilmDelisi : MainAPI() {
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
             )
-        ).document
+        ).document.cleanNoise()
 
-        return document.select("a[href*='/film/']").mapNotNull { card ->
+        val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, main") ?: document
+        return container.select("a[href*='/film/']").mapNotNull { card ->
             toSearchResult(card)
-        }.distinctBy { it.url }
+        }.filter { it.isMatch(query) }.distinctBy { it.url }
     }
 
     override suspend fun load(url: String): LoadResponse {

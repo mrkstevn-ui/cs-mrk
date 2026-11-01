@@ -72,6 +72,7 @@ class CizgiMax : MainAPI() {
             data.animes?.mapNotNull { item ->
                 val link = fixUrlNull(item.url) ?: return@mapNotNull null
                 val title = item.name ?: "Çizgi Film"
+                if (!isSearchMatch(title, link, query)) return@mapNotNull null
                 val poster = item.poster
                 val type = if (item.kind == "anime") TvType.Anime else TvType.Cartoon
 
