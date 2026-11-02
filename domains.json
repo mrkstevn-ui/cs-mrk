@@ -122,7 +122,7 @@
   "DiziPal": {
     "file": "TurkProviders/src/DiziPal.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://dizipal2145.com",
+    "current_url": "https://dizipal2146.com",
     "strategy": "numeric_increment",
     "pattern": "https://dizipal{num}.com",
     "mirrors": [
