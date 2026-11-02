@@ -15,8 +15,6 @@ class DiziYou : MainAPI() {
     override val hasQuickSearch = false
     override val supportedTypes = setOf(TvType.TvSeries, TvType.Movie)
 
-    private val cfInterceptor = WebViewResolver(Regex(""".*diziyou.*"""))
-
     override val mainPage = mainPageOf(
         "$mainUrl/diziler/page/" to "Diziler",
         "$mainUrl/filmler/page/" to "Filmler",
@@ -36,7 +34,6 @@ class DiziYou : MainAPI() {
 
         val document = app.get(
             targetUrl,
-            interceptor = cfInterceptor,
             headers = mapOf(
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
@@ -78,7 +75,6 @@ class DiziYou : MainAPI() {
         val searchUrl = "$mainUrl/?s=${query.trim().replace(" ", "+")}"
         val document = app.get(
             searchUrl,
-            interceptor = cfInterceptor,
             headers = mapOf(
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
@@ -112,7 +108,6 @@ class DiziYou : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(
             url,
-            interceptor = cfInterceptor,
             headers = mapOf(
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
@@ -203,7 +198,6 @@ class DiziYou : MainAPI() {
         try {
             val response = app.get(
                 data,
-                interceptor = cfInterceptor,
                 headers = mapOf(
                     "User-Agent" to TURK_USER_AGENT,
                     "Referer" to "$mainUrl/"

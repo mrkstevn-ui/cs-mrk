@@ -16,8 +16,6 @@ class FilmKovasi : MainAPI() {
     override val hasQuickSearch = false
     override val supportedTypes = setOf(TvType.Movie)
 
-    private val cfInterceptor = WebViewResolver(Regex(""".*filmkovasi.*"""))
-
     override val mainPage = mainPageOf(
         "$mainUrl/page/" to "Son Eklenen Filmler",
         "$mainUrl/tur/aksiyon-filmleri-izle/page/" to "Aksiyon Filmleri",
@@ -35,8 +33,7 @@ class FilmKovasi : MainAPI() {
 
         val document = app.get(
             targetUrl,
-            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
-            interceptor = cfInterceptor
+            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
         ).document
         val items = document.select(".movie-box, article, div.poster").mapNotNull { card ->
             toSearchResult(card)
@@ -65,8 +62,7 @@ class FilmKovasi : MainAPI() {
         val searchUrl = "$mainUrl/?s=${query.trim().replace(" ", "+")}"
         val document = app.get(
             searchUrl,
-            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
-            interceptor = cfInterceptor
+            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
         ).document.cleanNoise()
 
         val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items") ?: document
@@ -78,8 +74,7 @@ class FilmKovasi : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(
             url,
-            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
-            interceptor = cfInterceptor
+            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
         ).document
 
         val title = document.selectFirst("h1, .film-title, meta[property='og:title']")?.let {
@@ -124,8 +119,7 @@ class FilmKovasi : MainAPI() {
             try {
                 val html = app.get(
                     pageUrl,
-                    headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
-                    interceptor = cfInterceptor
+                    headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
                 ).text
 
                 // Extract base64 inside JSON.parse(d)

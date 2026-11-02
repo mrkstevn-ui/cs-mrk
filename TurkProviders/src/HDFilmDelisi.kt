@@ -15,8 +15,6 @@ class HDFilmDelisi : MainAPI() {
     override val hasQuickSearch = false
     override val supportedTypes = setOf(TvType.Movie)
 
-    private val cfInterceptor = WebViewResolver(Regex(""".*hdfilmdelisi.*"""))
-
     override val mainPage = mainPageOf(
         "$mainUrl/" to "Son Eklenen Filmler",
         "$mainUrl/populer" to "En Çok İzlenenler",
@@ -33,7 +31,6 @@ class HDFilmDelisi : MainAPI() {
         val targetUrl = request.data
         val document = app.get(
             targetUrl,
-            interceptor = cfInterceptor,
             headers = mapOf(
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
@@ -73,7 +70,6 @@ class HDFilmDelisi : MainAPI() {
         val searchUrl = "$mainUrl/?s=${query.trim().replace(" ", "+")}"
         val document = app.get(
             searchUrl,
-            interceptor = cfInterceptor,
             headers = mapOf(
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
@@ -89,7 +85,6 @@ class HDFilmDelisi : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(
             url,
-            interceptor = cfInterceptor,
             headers = mapOf(
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
@@ -180,7 +175,6 @@ class HDFilmDelisi : MainAPI() {
         try {
             val response = app.get(
                 data,
-                interceptor = cfInterceptor,
                 headers = mapOf(
                     "User-Agent" to TURK_USER_AGENT,
                     "Referer" to "$mainUrl/"
@@ -251,7 +245,7 @@ class HDFilmDelisi : MainAPI() {
             val doc = Jsoup.parse(html)
             doc.select("iframe").forEach { iframe ->
                 val src = fixUrlNull(iframe.attr("src").ifBlank { iframe.attr("data-src") })
-                if (src != null && src.startsWith("http") && !src.contains("izlegec.com") && !src.contains("hdfilmdelisi.one/embed/")) {
+                if (src != null && src.startsWith("http") && !src.contains("izlegec") && !src.contains("hdfilmdelisi") && !src.contains("/embed/")) {
                     val loaded = loadExtractor(src, "$mainUrl/", subtitleCallback, callback)
                     if (loaded) {
                         foundLinks = true

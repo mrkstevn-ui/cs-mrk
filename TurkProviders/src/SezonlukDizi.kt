@@ -28,7 +28,6 @@ class SezonlukDizi : MainAPI() {
         val url = "${request.data}$page"
         val res = app.get(
             url,
-            interceptor = cfInterceptor,
             headers = mapOf(
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
@@ -59,7 +58,6 @@ class SezonlukDizi : MainAPI() {
             val resp = app.post(
                 "$mainUrl/ajax/arama.asp",
                 data = mapOf("q" to query.trim()),
-                interceptor = cfInterceptor,
                 headers = mapOf(
                     "User-Agent" to TURK_USER_AGENT,
                     "Referer" to "$mainUrl/",
@@ -92,7 +90,6 @@ class SezonlukDizi : MainAPI() {
             try {
                 val res = app.get(
                     "$mainUrl/diziler.asp?q=${query.trim()}",
-                    interceptor = cfInterceptor,
                     headers = mapOf(
                         "User-Agent" to TURK_USER_AGENT,
                         "Referer" to "$mainUrl/"
@@ -122,7 +119,6 @@ class SezonlukDizi : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val res = app.get(
             url,
-            interceptor = cfInterceptor,
             headers = mapOf(
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
@@ -142,7 +138,6 @@ class SezonlukDizi : MainAPI() {
         try {
             val bolumlerRes = app.get(
                 bolumlerUrl,
-                interceptor = cfInterceptor,
                 headers = mapOf(
                     "User-Agent" to TURK_USER_AGENT,
                     "Referer" to url
@@ -212,7 +207,6 @@ class SezonlukDizi : MainAPI() {
         try {
             val res = app.get(
                 data,
-                interceptor = cfInterceptor,
                 headers = mapOf(
                     "User-Agent" to TURK_USER_AGENT,
                     "Referer" to "$mainUrl/"
@@ -228,7 +222,6 @@ class SezonlukDizi : MainAPI() {
                     val altRes = app.post(
                         "$mainUrl/ajax/dataAlternatif22.asp",
                         data = mapOf("bid" to bid, "dil" to dil),
-                        interceptor = cfInterceptor,
                         headers = mapOf(
                             "User-Agent" to TURK_USER_AGENT,
                             "Referer" to data,
@@ -248,7 +241,6 @@ class SezonlukDizi : MainAPI() {
                             val embedRes = app.post(
                                 "$mainUrl/ajax/dataEmbed22.asp",
                                 data = mapOf("id" to altId),
-                                interceptor = cfInterceptor,
                                 headers = mapOf(
                                     "User-Agent" to TURK_USER_AGENT,
                                     "Referer" to data,

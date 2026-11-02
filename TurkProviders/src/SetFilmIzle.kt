@@ -16,8 +16,6 @@ class SetFilmIzle : MainAPI() {
     override val hasQuickSearch = false
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
 
-    private val cfInterceptor = WebViewResolver(Regex(""".*setfilmizle.*"""))
-
     override val mainPage = mainPageOf(
         "$mainUrl/film/page/" to "Son Eklenen Filmler",
         "$mainUrl/dizi/page/" to "Yabancı Diziler",
@@ -31,8 +29,7 @@ class SetFilmIzle : MainAPI() {
         val url = "${request.data}$page/"
         val res = app.get(
             url,
-            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
-            interceptor = cfInterceptor
+            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
         ).text
         val doc = Jsoup.parse(res)
         val items = mutableListOf<SearchResponse>()
@@ -64,8 +61,7 @@ class SetFilmIzle : MainAPI() {
         val url = "$mainUrl/?s=${query.trim().replace(" ", "+")}"
         val res = app.get(
             url,
-            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
-            interceptor = cfInterceptor
+            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
         ).text
         val doc = Jsoup.parse(res).cleanNoise()
         val items = mutableListOf<SearchResponse>()
@@ -98,8 +94,7 @@ class SetFilmIzle : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val res = app.get(
             url,
-            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
-            interceptor = cfInterceptor
+            headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
         ).text
         val doc = Jsoup.parse(res)
 
@@ -178,8 +173,7 @@ class SetFilmIzle : MainAPI() {
         try {
             val res = app.get(
                 data,
-                headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/"),
-                interceptor = cfInterceptor
+                headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
             ).text
             val postId = Regex("""data-post-id=["'](\d+)["']""").find(res)?.groupValues?.get(1) ?: return false
             val nonce = Regex("""video:\s*["']([a-f0-9]+)["']""").find(res)?.groupValues?.get(1) ?: return false
@@ -205,8 +199,7 @@ class SetFilmIzle : MainAPI() {
                             "User-Agent" to TURK_USER_AGENT,
                             "Referer" to data,
                             "X-Requested-With" to "XMLHttpRequest"
-                        ),
-                        interceptor = cfInterceptor
+                        )
                     ).text
 
                     val ajaxJson = JSONObject(ajaxRes)

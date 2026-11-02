@@ -16,8 +16,6 @@ class FullHDFilmizlesene : MainAPI() {
     override val hasQuickSearch = false
     override val supportedTypes = setOf(TvType.Movie)
 
-    private val cfInterceptor = WebViewResolver(Regex(""".*fullhdfilmizlesene.*"""))
-
     override val mainPage = mainPageOf(
         "$mainUrl/en-cok-izlenen-filmler" to "En Çok İzlenenler",
         "$mainUrl/populer-filmler" to "Popüler Filmler",
@@ -34,8 +32,7 @@ class FullHDFilmizlesene : MainAPI() {
 
         val document = app.get(
             targetUrl,
-            interceptor = cfInterceptor,
-            headers = mapOf("Referer" to "$mainUrl/")
+            headers = mapOf("Referer" to "$mainUrl/", "User-Agent" to TURK_USER_AGENT)
         ).document
         val items = document.select("li.film").mapNotNull { card ->
             toSearchResult(card)
@@ -63,7 +60,7 @@ class FullHDFilmizlesene : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val encoded = query.trim().replace(" ", "+")
         val searchUrl = "$mainUrl/arama/$encoded"
-        val document = app.get(searchUrl, interceptor = cfInterceptor, headers = mapOf("Referer" to "$mainUrl/")).document.cleanNoise()
+        val document = app.get(searchUrl, headers = mapOf("Referer" to "$mainUrl/", "User-Agent" to TURK_USER_AGENT)).document.cleanNoise()
 
         val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, ul.films, main") ?: document
         return container.select("li.film").mapNotNull { card ->
@@ -72,7 +69,7 @@ class FullHDFilmizlesene : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url, interceptor = cfInterceptor, headers = mapOf("Referer" to "$mainUrl/")).document
+        val document = app.get(url, headers = mapOf("Referer" to "$mainUrl/", "User-Agent" to TURK_USER_AGENT)).document
 
         val title = document.selectFirst("h1, .film-title, meta[property='og:title']")?.let {
             if (it.tagName() == "meta") it.attr("content") else it.text()
@@ -101,7 +98,7 @@ class FullHDFilmizlesene : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val filmPage = app.get(data, interceptor = cfInterceptor, headers = mapOf("Referer" to "$mainUrl/")).text
+        val filmPage = app.get(data, headers = mapOf("Referer" to "$mainUrl/", "User-Agent" to TURK_USER_AGENT)).text
 
         // Extract tokens from var scx = {...}
         val scxMatch = Regex("""var\s+scx\s*=\s*(\{.*?\});""", setOf(RegexOption.DOT_MATCHES_ALL)).find(filmPage)?.groupValues?.get(1)

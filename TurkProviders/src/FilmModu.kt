@@ -20,8 +20,6 @@ class FilmModu : MainAPI() {
     override var lang = "tr"
     override val supportedTypes = setOf(TvType.Movie)
 
-    private val cfInterceptor = WebViewResolver(Regex(""".*filmmodu.*"""))
-
     private val standardHeaders = mapOf(
         "User-Agent" to TURK_USER_AGENT,
         "Referer" to "https://filmmodu.cc/"
@@ -46,7 +44,7 @@ class FilmModu : MainAPI() {
             if (page <= 1) "$mainUrl/${request.data}" else "$mainUrl/${request.data}/$page"
         }
 
-        val doc = app.get(url, headers = standardHeaders, interceptor = cfInterceptor).document
+        val doc = app.get(url, headers = standardHeaders).document
         val movies = doc.select("article.movie_box").mapNotNull { toSearchResult(it) }
 
         return newHomePageResponse(
@@ -81,8 +79,7 @@ class FilmModu : MainAPI() {
                 data = mapOf(
                     "action" to "ajax_search",
                     "arama_kelime" to query
-                ),
-                interceptor = cfInterceptor
+                )
             )
 
             val doc = Jsoup.parse(response.text)
@@ -101,7 +98,7 @@ class FilmModu : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val doc = app.get(url, headers = standardHeaders, interceptor = cfInterceptor).document
+        val doc = app.get(url, headers = standardHeaders).document
 
         val rawTitle = doc.selectFirst("h1")?.text()
             ?: doc.selectFirst("meta[property=og:title]")?.attr("content")
@@ -135,7 +132,7 @@ class FilmModu : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val pageHtml = app.get(data, headers = standardHeaders, interceptor = cfInterceptor).text
+        val pageHtml = app.get(data, headers = standardHeaders).text
 
         // 1. ilkpartkod kontrolü
         val ilkPattern = Pattern.compile("var\\s+ilkpartkod\\s*=\\s*'([^']+)'")
