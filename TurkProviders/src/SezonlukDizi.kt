@@ -1,7 +1,6 @@
 package com.turk
 
 import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.network.WebViewResolver
 import com.lagradost.cloudstream3.utils.*
 import org.json.JSONObject
 import org.jsoup.Jsoup
@@ -13,8 +12,6 @@ class SezonlukDizi : MainAPI() {
     override var lang = "tr"
     override val hasQuickSearch = false
     override val supportedTypes = setOf(TvType.TvSeries)
-
-    private val cfInterceptor = WebViewResolver(Regex(""".*sezonlukdizi.*"""))
 
     override val mainPage = mainPageOf(
         "$mainUrl/diziler.asp?s=" to "Popüler Yabancı Diziler",
@@ -248,63 +245,36 @@ class SezonlukDizi : MainAPI() {
                                 )
                             ).text
 
-                            var iframeSrc = Regex("""src=["']([^"']+)["']""").find(embedRes)?.groupValues?.get(1)
-
-                            if (iframeSrc != null && iframeSrc.contains("reCAPTCHA")) {
-                                try {
-                                    app.get(
-                                        "$mainUrl/ajax/reCAPTCHADATA.asp",
-                                        interceptor = cfInterceptor,
-                                        headers = mapOf(
-                                            "User-Agent" to TURK_USER_AGENT,
-                                            "Referer" to data
-                                        )
-                                    )
-                                    val retryEmbed = app.post(
-                                        "$mainUrl/ajax/dataEmbed22.asp",
-                                        data = mapOf("id" to altId),
-                                        interceptor = cfInterceptor,
-                                        headers = mapOf(
-                                            "User-Agent" to TURK_USER_AGENT,
-                                            "Referer" to data,
-                                            "X-Requested-With" to "XMLHttpRequest"
-                                        )
-                                    ).text
-                                    val retrySrc = Regex("""src=["']([^"']+)["']""").find(retryEmbed)?.groupValues?.get(1)
-                                    if (retrySrc != null && !retrySrc.contains("reCAPTCHA")) {
-                                        iframeSrc = retrySrc
-                                    }
-                                } catch (e: Exception) {
-                                    // Ignore webview resolution failure
-                                }
-                            }
+                            val iframeSrc = Regex("""src=["']([^"']+)["']""").find(embedRes)?.groupValues?.get(1)
 
                             if (iframeSrc == null || iframeSrc.contains("reCAPTCHA") || iframeSrc.contains("engel.html")) {
                                 continue
                             }
 
-                            val fullIframeUrl = if (iframeSrc.startsWith("//")) {
-                                "https:$iframeSrc"
-                            } else if (iframeSrc.startsWith("/")) {
-                                "$mainUrl$iframeSrc"
-                            } else {
-                                iframeSrc
+                            val fullIframeUrl = when {
+                                iframeSrc.startsWith("//") -> "https:$iframeSrc"
+                                iframeSrc.startsWith("/") -> "$mainUrl$iframeSrc"
+                                else -> iframeSrc
                             }
 
-                            val urlsToTry = mutableListOf(fullIframeUrl)
                             if (fullIframeUrl.contains("byse")) {
-                                val fileCode = fullIframeUrl.substringAfter("/e/").substringBefore("?").substringBefore("\"").substringBefore("'").trimEnd('/')
-                                if (fileCode.isNotBlank()) {
-                                    urlsToTry.add("https://filemoon.to/e/$fileCode")
-                                    urlsToTry.add("https://filemoon.sx/e/$fileCode")
+                                try {
+                                    ByseExtractor().getUrl(fullIframeUrl, data, subtitleCallback) { link ->
+                                        callback.invoke(link)
+                                        foundLinks = true
+                                    }
+                                } catch (e: Exception) {
+                                    // Ignore Byse error
                                 }
                             }
 
-                            for (tryUrl in urlsToTry) {
-                                loadExtractor(tryUrl, data, subtitleCallback) { link ->
+                            try {
+                                loadExtractor(fullIframeUrl, data, subtitleCallback) { link ->
                                     callback.invoke(link)
                                     foundLinks = true
                                 }
+                            } catch (e: Exception) {
+                                // Ignore loadExtractor error
                             }
                         } catch (e: Exception) {
                             // Ignore single embed error
