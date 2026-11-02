@@ -68,33 +68,90 @@ class FilmModu : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        return try {
+        val results = mutableListOf<SearchResponse>()
+        try {
+            // 1. Yeni JSON Arama API'si (/arama/oneri)
+            val homeDoc = app.get(mainUrl, headers = standardHeaders).document
+            val csrfToken = homeDoc.selectFirst("meta[name='csrf-token']")?.attr("content").orEmpty()
+
             val response = app.post(
-                "$mainUrl/arama/",
+                "$mainUrl/arama/oneri",
                 headers = mapOf(
                     "User-Agent" to TURK_USER_AGENT,
+                    "X-CSRF-TOKEN" to csrfToken,
                     "X-Requested-With" to "XMLHttpRequest",
-                    "Referer" to "$mainUrl/"
+                    "Referer" to "$mainUrl/",
+                    "Accept" to "application/json",
+                    "Content-Type" to "application/x-www-form-urlencoded"
                 ),
-                data = mapOf(
-                    "action" to "ajax_search",
-                    "arama_kelime" to query
-                )
-            )
+                data = mapOf("q" to query.trim())
+            ).text
 
-            val doc = Jsoup.parse(response.text)
-            doc.select("a.search_s").mapNotNull { a ->
-                val href = fixUrlNull(a.attr("href")) ?: return@mapNotNull null
-                val title = a.selectFirst(".title")?.text()?.ifEmpty { a.attr("title") } ?: a.attr("title")
-                if (!isSearchMatch(title, href, query)) return@mapNotNull null
-                val poster = a.selectFirst("img")?.attr("src")?.replace("_m.", "_xl.")
-                newMovieSearchResponse(title.trim(), href, TvType.Movie) {
-                    addPoster(poster, mainUrl)
+            val json = JSONObject(response)
+            val films = json.optJSONArray("films")
+            if (films != null) {
+                for (i in 0 until films.length()) {
+                    val f = films.getJSONObject(i)
+                    val title = f.optString("title").replace(" izle", "", ignoreCase = true).trim()
+                    val url = fixUrlNull(f.optString("url")) ?: continue
+                    if (!isSearchMatch(title, url, query)) continue
+                    val poster = f.optString("poster").replace("_m.", "_xl.").replace("_s.", "_xl.")
+                    val year = f.optInt("year").takeIf { it > 0 }
+
+                    results.add(newMovieSearchResponse(title, url, TvType.Movie) {
+                        addPoster(poster, mainUrl)
+                        this.year = year
+                    })
+                }
+            }
+
+            val series = json.optJSONArray("series")
+            if (series != null) {
+                for (i in 0 until series.length()) {
+                    val s = series.getJSONObject(i)
+                    val title = s.optString("title").replace(" izle", "", ignoreCase = true).trim()
+                    val url = fixUrlNull(s.optString("url")) ?: continue
+                    if (!isSearchMatch(title, url, query)) continue
+                    val poster = s.optString("poster").replace("_m.", "_xl.").replace("_s.", "_xl.")
+                    val year = s.optInt("year").takeIf { it > 0 }
+
+                    results.add(newTvSeriesSearchResponse(title, url, TvType.TvSeries) {
+                        addPoster(poster, mainUrl)
+                        this.year = year
+                    })
                 }
             }
         } catch (e: Exception) {
-            emptyList()
+            // Fallback: Eski HTML arama
+            try {
+                val response = app.post(
+                    "$mainUrl/arama/",
+                    headers = mapOf(
+                        "User-Agent" to TURK_USER_AGENT,
+                        "X-Requested-With" to "XMLHttpRequest",
+                        "Referer" to "$mainUrl/"
+                    ),
+                    data = mapOf(
+                        "action" to "ajax_search",
+                        "arama_kelime" to query
+                    )
+                )
+
+                val doc = Jsoup.parse(response.text)
+                doc.select("a.search_s").forEach { a ->
+                    val href = fixUrlNull(a.attr("href")) ?: return@forEach
+                    val title = a.selectFirst(".title")?.text()?.ifEmpty { a.attr("title") } ?: a.attr("title")
+                    if (!isSearchMatch(title, href, query)) return@forEach
+                    val poster = a.selectFirst("img")?.attr("src")?.replace("_m.", "_xl.")
+                    results.add(newMovieSearchResponse(title.trim(), href, TvType.Movie) {
+                        addPoster(poster, mainUrl)
+                    })
+                }
+            } catch (e2: Exception) {
+                // Ignore
+            }
         }
+        return results.distinctBy { it.url }
     }
 
     override suspend fun load(url: String): LoadResponse? {
@@ -132,9 +189,59 @@ class FilmModu : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val pageHtml = app.get(data, headers = standardHeaders).text
+        val pageDoc = app.get(data, headers = standardHeaders).document
+        val pageHtml = pageDoc.html()
+        var foundAny = false
 
-        // 1. ilkpartkod kontrolü
+        // 1. Yeni Sistem: #f_player div[data-k] ve /px API'si
+        val csrfToken = pageDoc.selectFirst("meta[name='csrf-token']")?.attr("content").orEmpty()
+        val dataKAttr = pageDoc.selectFirst("#f_player, .fm-oynatici")?.attr("data-k")
+            ?: Regex("""data-k=["'](.*?)["']""").find(pageHtml)?.groupValues?.get(1)
+
+        if (!dataKAttr.isNullOrBlank()) {
+            try {
+                val jsonArr = org.json.JSONArray(dataKAttr.replace("&quot;", "\""))
+                for (i in 0 until jsonArr.length()) {
+                    val item = jsonArr.getJSONObject(i)
+                    val itemId = item.optLong("i")
+                    val itemS = item.optString("s")
+                    if (itemId == 0L || itemS.isBlank()) continue
+
+                    try {
+                        val pxResp = app.post(
+                            "$mainUrl/px",
+                            headers = mapOf(
+                                "User-Agent" to TURK_USER_AGENT,
+                                "Referer" to data,
+                                "X-CSRF-TOKEN" to csrfToken,
+                                "X-Requested-With" to "XMLHttpRequest",
+                                "Accept" to "application/json",
+                                "Content-Type" to "application/x-www-form-urlencoded"
+                            ),
+                            data = mapOf("i" to itemId.toString(), "s" to itemS)
+                        ).text
+
+                        val pxJson = JSONObject(pxResp)
+                        val playerUrl = pxJson.optString("u")
+                        if (playerUrl.isNotBlank() && playerUrl.startsWith("http")) {
+                            if (playerUrl.contains("vidmixi.com/embed/")) {
+                                resolveVidmixi(playerUrl, "FilmModu", subtitleCallback, callback)
+                                foundAny = true
+                            } else {
+                                loadExtractor(playerUrl, mainUrl, subtitleCallback, callback)
+                                foundAny = true
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        // 2. ilkpartkod kontrolü (eski sistem fallback)
         val ilkPattern = Pattern.compile("var\\s+ilkpartkod\\s*=\\s*'([^']+)'")
         val ilkMatcher = ilkPattern.matcher(pageHtml)
         if (ilkMatcher.find()) {
@@ -142,12 +249,13 @@ class FilmModu : MainAPI() {
             try {
                 val decoded = String(Base64.decode(b64, Base64.DEFAULT))
                 extractAndLoadPlayer(decoded, "Ana Sunucu", subtitleCallback, callback)
+                foundAny = true
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
 
-        // 2. pdata array kontrolü (tüm part ve alternatif sunucular)
+        // 3. pdata array kontrolü (tüm part ve alternatif sunucular)
         val pdataPattern = Pattern.compile("pdata\\['([^']+)'\\]\\s*=\\s*'([^']+)'")
         val pdataMatcher = pdataPattern.matcher(pageHtml)
         while (pdataMatcher.find()) {
@@ -160,12 +268,13 @@ class FilmModu : MainAPI() {
                 val decoded = String(Base64.decode(raw, Base64.DEFAULT))
                 val label = if (partKey.contains("atom")) "Atom" else if (partKey.contains("fast")) "Hızlı" else "Alternatif"
                 extractAndLoadPlayer(decoded, label, subtitleCallback, callback)
+                foundAny = true
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
 
-        return true
+        return foundAny
     }
 
     private suspend fun extractAndLoadPlayer(

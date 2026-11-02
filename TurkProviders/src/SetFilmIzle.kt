@@ -208,7 +208,7 @@ class SetFilmIzle : MainAPI() {
                     val streamUrl = streamObj.optString("url")
                     if (streamUrl.isBlank()) continue
 
-                    if (streamUrl.contains("setplay.shop/player/stfplay.php")) {
+                    if (streamUrl.contains("/player/stfplay.php") || streamUrl.contains("setplay.")) {
                         val setplayHtml = app.get(streamUrl, headers = mapOf("Referer" to "$mainUrl/")).text
                         val cerceveMatch = Regex("""SPG\.cerceve\(["'][^"']+["'],\s*["']([^"']+)["'],\s*["']([^"']+)["']\)""").find(setplayHtml)
                         if (cerceveMatch != null) {
@@ -217,7 +217,7 @@ class SetFilmIzle : MainAPI() {
                             val decryptedFastplayUrl = xorDecrypt(cipher, key)
 
                             if (decryptedFastplayUrl.startsWith("http")) {
-                                val fastplayHtml = app.get(decryptedFastplayUrl, headers = mapOf("Referer" to "https://setplay.shop/")).text
+                                val fastplayHtml = app.get(decryptedFastplayUrl, headers = mapOf("Referer" to streamUrl)).text
                                 val sp = Regex(""""sp":"([^"]+)"""").find(fastplayHtml)?.groupValues?.get(1) ?: ""
                                 val spT = Regex(""""spT":(\d+)""").find(fastplayHtml)?.groupValues?.get(1)?.toLongOrNull() ?: 0L
                                 val manifestPath = Regex("""src:\s*"([^"]+)"""").find(fastplayHtml)?.groupValues?.get(1) ?: ""

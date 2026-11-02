@@ -16,7 +16,7 @@ class Patronspor : MainAPI() {
     private val matchesApi = "https://patronsports2.cfd/matches.php"
     private val channelsApi = "https://patronsports2.cfd/channels.php"
     private val domainApi = "https://patronsports2.cfd/domain.php"
-    private var cachedBaseUrl = "https://2i4.d72577a9dd0ec71.cfd/"
+    private var cachedBaseUrl = "https://g1b.d72577a9dd0ec74.cfd/"
 
     override val mainPage = mainPageOf(
         "$mainUrl/matches" to "Günün Canlı Maçları",

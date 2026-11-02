@@ -40,7 +40,7 @@
   "KultFilmler": {
     "file": "TurkProviders/src/KultFilmler.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://kultfilmler.org",
+    "current_url": "https://kultfilmler.net",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
       "https://kultfilmler.net",
@@ -126,6 +126,7 @@
     "strategy": "numeric_increment",
     "pattern": "https://dizipal{num}.com",
     "mirrors": [
+      "https://dizipal2146.com",
       "https://dizipal2145.com",
       "https://dizipal1592.com"
     ],
@@ -195,14 +196,14 @@
   "InatTV": {
     "file": "TurkProviders/src/InatTV.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://inattv1327.xyz",
-    "strategy": "numeric_increment",
-    "pattern": "https://inattv{num}.xyz",
+    "current_url": "https://patronkale2.cfd",
+    "strategy": "redirect_and_mirrors",
     "mirrors": [
-      "https://inattv1326.xyz",
-      "https://inattv1325.xyz"
+      "https://patronkale2.cfd",
+      "https://patronkale1.cfd",
+      "https://inattv1327.xyz"
     ],
-    "verification_keyword": "inat"
+    "verification_keyword": "patron"
   },
   "Patronspor": {
     "file": "TurkProviders/src/Patronspor.kt",

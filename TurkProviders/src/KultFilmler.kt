@@ -7,7 +7,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
 class KultFilmler : MainAPI() {
-    override var mainUrl = "https://kultfilmler.org"
+    override var mainUrl = "https://kultfilmler.net"
     override var name = "KültFilmler"
     override val hasMainPage = true
     override var lang = "tr"
@@ -22,9 +22,9 @@ class KultFilmler : MainAPI() {
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val url = if (page <= 1) request.data else "${request.data}$page/"
         val document = app.get(url).document
-        val items = document.select("a.mcard").mapNotNull { card ->
+        val items = document.select("a.mcard, .movie-box, .poster a").mapNotNull { card ->
             toSearchResult(card)
-        }
+        }.distinctBy { it.url }
         return newHomePageResponse(request.name, items)
     }
 
@@ -53,7 +53,7 @@ class KultFilmler : MainAPI() {
         val searchUrl = "$mainUrl/?s=${query.replace(" ", "+")}"
         val document = app.get(searchUrl).document.cleanNoise()
         val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, main") ?: document
-        return container.select("a.mcard").mapNotNull { card ->
+        return container.select("a.mcard, .movie-box, .poster a").mapNotNull { card ->
             toSearchResult(card)
         }.filter { it.isMatch(query) }.distinctBy { it.url }
     }

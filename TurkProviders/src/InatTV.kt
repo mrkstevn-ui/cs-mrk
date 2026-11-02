@@ -6,7 +6,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class InatTV : MainAPI() {
-    override var mainUrl = "https://inattv1327.xyz"
+    override var mainUrl = "https://patronkale2.cfd"
     override var name = "İnatTV"
     override val hasMainPage = true
     override var lang = "tr"
@@ -14,7 +14,8 @@ class InatTV : MainAPI() {
     override val supportedTypes = setOf(TvType.Live)
 
     private val matchesApi = "https://patronsports2.cfd/matches.php"
-    private var cachedBaseUrl = "https://2i4.d72577a9dd0ec71.cfd/"
+    private val domainApi = "https://patronsports2.cfd/domain.php"
+    private var cachedBaseUrl = "https://g1b.d72577a9dd0ec74.cfd/"
 
     data class ChannelDef(
         val id: String,
@@ -192,15 +193,23 @@ class InatTV : MainAPI() {
                 return true
             }
 
-            // Extract dynamic baseUrl from page
+            // Extract dynamic baseUrl from domainApi or page
             try {
-                val html = app.get(data, headers = mapOf("Referer" to "$mainUrl/")).text
-                val baseMatch = Regex("""baseUrl:\s*['"]([^'"]+)['"]""").find(html)
-                if (baseMatch != null) {
-                    cachedBaseUrl = baseMatch.groupValues[1]
+                val domainRes = app.get(domainApi, headers = mapOf("Referer" to "$mainUrl/")).text
+                val base = org.json.JSONObject(domainRes).optString("baseurl")
+                if (base.isNotBlank()) {
+                    cachedBaseUrl = base
                 }
             } catch (e: Exception) {
-                // Fallback to cached
+                try {
+                    val html = app.get(data, headers = mapOf("Referer" to "$mainUrl/")).text
+                    val baseMatch = Regex("""baseUrl:\s*['"]([^'"]+)['"]""").find(html)
+                    if (baseMatch != null) {
+                        cachedBaseUrl = baseMatch.groupValues[1]
+                    }
+                } catch (e2: Exception) {
+                    // Fallback to cached
+                }
             }
 
             val channelId = targetParam.ifEmpty { "trt1" }

@@ -67,19 +67,80 @@ class HDFilmDelisi : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val searchUrl = "$mainUrl/?s=${query.trim().replace(" ", "+")}"
-        val document = app.get(
-            searchUrl,
-            headers = mapOf(
-                "User-Agent" to TURK_USER_AGENT,
-                "Referer" to "$mainUrl/"
-            )
-        ).document.cleanNoise()
+        val results = mutableListOf<SearchResponse>()
+        try {
+            // 1. Next.js JSON Arama API'si
+            val searchApiUrl = "$mainUrl/api/search?q=${query.trim().replace(" ", "+")}"
+            val resText = app.get(
+                searchApiUrl,
+                headers = mapOf(
+                    "User-Agent" to TURK_USER_AGENT,
+                    "Referer" to "$mainUrl/"
+                )
+            ).text
 
-        val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, main") ?: document
-        return container.select("a[href*='/film/']").mapNotNull { card ->
-            toSearchResult(card)
-        }.filter { it.isMatch(query) }.distinctBy { it.url }
+            val json = org.json.JSONObject(resText)
+            val movieList = json.optJSONArray("results")
+            if (movieList != null) {
+                for (i in 0 until movieList.length()) {
+                    val m = movieList.getJSONObject(i)
+                    val slug = m.optString("slug")
+                    if (slug.isBlank()) continue
+                    val title = m.optString("baslik").ifBlank { m.optString("orijinalBaslik") }
+                    val poster = m.optString("afis")
+                    val year = m.optInt("yayinYili").takeIf { it > 0 }
+                    val href = "$mainUrl/film/$slug"
+
+                    if (!isSearchMatch(title, href, query)) continue
+
+                    results.add(newMovieSearchResponse(title, href, TvType.Movie) {
+                        addPoster(poster, mainUrl)
+                        this.year = year
+                    })
+                }
+            }
+
+            val seriesList = json.optJSONArray("series")
+            if (seriesList != null) {
+                for (i in 0 until seriesList.length()) {
+                    val s = seriesList.getJSONObject(i)
+                    val slug = s.optString("slug")
+                    if (slug.isBlank()) continue
+                    val title = s.optString("baslik").ifBlank { s.optString("orijinalBaslik") }
+                    val poster = s.optString("afis")
+                    val year = s.optInt("yayinYili").takeIf { it > 0 }
+                    val href = "$mainUrl/dizi/$slug"
+
+                    if (!isSearchMatch(title, href, query)) continue
+
+                    results.add(newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+                        addPoster(poster, mainUrl)
+                        this.year = year
+                    })
+                }
+            }
+        } catch (e: Exception) {
+            // Fallback: HTML search
+            try {
+                val searchUrl = "$mainUrl/?s=${query.trim().replace(" ", "+")}"
+                val document = app.get(
+                    searchUrl,
+                    headers = mapOf(
+                        "User-Agent" to TURK_USER_AGENT,
+                        "Referer" to "$mainUrl/"
+                    )
+                ).document.cleanNoise()
+
+                val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, main") ?: document
+                container.select("a[href*='/film/']").forEach { card ->
+                    toSearchResult(card)?.let { results.add(it) }
+                }
+            } catch (e2: Exception) {
+                // Ignore
+            }
+        }
+
+        return results.filter { it.isMatch(query) }.distinctBy { it.url }
     }
 
     override suspend fun load(url: String): LoadResponse {
@@ -182,8 +243,11 @@ class HDFilmDelisi : MainAPI() {
             )
             val html = response.text
 
-            // 1. Extract real Vixolity player from Next.js payload
-            val videoUrl = Regex("""videoUrl[^:]*:\s*\\*["'](https?://[^"'\\]+)""").find(html)?.groupValues?.get(1)
+            // 1. Extract real Vixolity player from Next.js payload or direct link
+            val vixDirect = Regex("""https?://pl\.vixolity\.com/[a-zA-Z0-9_\-]+""").find(html)?.value
+            val videoUrl = vixDirect
+                ?: Regex("""videoUrl\\*"\s*:\s*\\*"(https?://[^"\\]+)""").find(html)?.groupValues?.get(1)
+                ?: Regex("""videoUrl[^:]*:\s*\\*["'](https?://[^"'\\]+)""").find(html)?.groupValues?.get(1)
             if (videoUrl != null) {
                 try {
                     val vixDoc = app.get(

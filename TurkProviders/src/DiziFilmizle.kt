@@ -66,7 +66,8 @@ class DiziFilmizle : MainAPI() {
         @JsonProperty("slug") val slug: String? = null,
         @JsonProperty("poster_url") val posterUrl: String? = null,
         @JsonProperty("year") val year: Int? = null,
-        @JsonProperty("type") val type: String? = null
+        @JsonProperty("type") val type: String? = null,
+        @JsonProperty("content_type") val contentType: String? = null
     )
 
     data class SearchApiResponse(
@@ -87,7 +88,7 @@ class DiziFilmizle : MainAPI() {
             val data = AppUtils.parseJson<SearchApiResponse>(json)
             data.results?.mapNotNull { r ->
                 val slug = r.slug ?: return@mapNotNull null
-                val isSeries = r.type == "dizi"
+                val isSeries = r.contentType == "series" || r.type == "series" || r.type == "dizi"
                 val href = if (isSeries) "$mainUrl/dizi/$slug" else "$mainUrl/film/$slug"
                 val title = r.title ?: r.originalTitle ?: "Film"
                 if (!isSearchMatch(title, href, query) && !matchesQuery(r.originalTitle, query)) return@mapNotNull null

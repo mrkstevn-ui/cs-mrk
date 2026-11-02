@@ -49,6 +49,9 @@ class Dizigom : MainAPI() {
 
     private fun toSearchResult(element: org.jsoup.nodes.Element): SearchResponse? {
         val href = fixUrlNull(element.attr("href")) ?: return null
+        if (href.contains("/locale/") || (!href.contains("/diziler/") && !href.contains("/film/") && !href.contains("/anime/"))) {
+            return null
+        }
         val img = element.selectFirst("img")
         val rawTitle = element.selectFirst("h3")?.text()
             ?: img?.attr("alt")?.replace(" Dizi izle", "")?.replace(" Anime izle", "")?.replace(" izle", "")
