@@ -209,7 +209,7 @@
   "Patronspor": {
     "file": "TurkProviders/src/Patronspor.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://patronkale2.cfd",
+    "current_url": "https://patronkale3.cfd",
     "strategy": "numeric_increment",
     "pattern": "https://patronkale{num}.cfd",
     "mirrors": [

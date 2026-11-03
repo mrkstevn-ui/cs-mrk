@@ -12,7 +12,7 @@ import org.mozilla.javascript.Scriptable
 import java.util.regex.Pattern
 
 class HDFilmCehennemi : AdaptiveProvider() {
-    override var mainUrl = "https://www.hdfilmcehennemi.nl"
+    override var mainUrl = "https://www.hdfilmcehennemi2.biz"
     override var name = "HDFilmcehennemi"
     override val hasMainPage = true
     override var lang = "tr"

@@ -6,7 +6,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class Patronspor : LiveProvider() {
-    override var mainUrl = "https://patronkale2.cfd"
+    override var mainUrl = "https://patronkale3.cfd"
     override var name = "Patronspor"
     override val hasMainPage = true
     override var lang = "tr"
