@@ -6,3 +6,6 @@ build/
 local.properties
 .DS_Store
 .kotlin/
+
+__pycache__/
+*.py[cod]

@@ -15,7 +15,7 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
-class DiziPal : MainAPI() {
+class DiziPal : AdaptiveProvider() {
     override var mainUrl = "https://dizipal2152.com"
     override var name = "DiziPal"
     override val hasMainPage = true
@@ -32,14 +32,14 @@ class DiziPal : MainAPI() {
         "$mainUrl/anime" to "Animeler"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
         val targetUrl = if (page > 1) {
             "${request.data}?page=$page"
         } else {
             request.data
         }
 
-        val document = app.get(targetUrl, interceptor = cfInterceptor, headers = mapOf("Referer" to "$mainUrl/")).document
+        val document = app.get(targetUrl, interceptor = cfInterceptor, headers = mapOf("Referer" to "$mainUrl/")).document.requireContent(name)
         val items = document.select("article.content-card, li.content-card, .card-link, a[href*='/film/'], a[href*='/dizi/']").mapNotNull { card ->
             toSearchResult(card)
         }.distinctBy { it.url }
@@ -78,26 +78,28 @@ class DiziPal : MainAPI() {
     private fun String.capitalizeWords(): String =
         split(" ").joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
 
-    override suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
         val encoded = URLEncoder.encode(query.trim(), "UTF-8")
         val searchUrl = "$mainUrl/arama?q=$encoded"
         val results = mutableListOf<SearchResponse>()
 
         try {
-            val document = app.get(searchUrl, interceptor = cfInterceptor, headers = mapOf("Referer" to "$mainUrl/")).document.cleanNoise()
+            val document = app.get(searchUrl, interceptor = cfInterceptor, headers = mapOf("Referer" to "$mainUrl/")).document.requireContent(name).cleanNoise()
             val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, main") ?: document
             container.select("article.content-card, li.content-card, .card-link, a[href*='/film/'], a[href*='/dizi/']").forEach { card ->
                 toSearchResult(card)?.let { results.add(it) }
             }
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             // fallback
         }
 
         return results.filter { it.isMatch(query) }.distinctBy { it.url }
     }
 
-    override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url, interceptor = cfInterceptor, headers = mapOf("Referer" to "$mainUrl/")).document
+    override suspend fun loadProvider(url: String): LoadResponse {
+        val document = app.get(url, interceptor = cfInterceptor, headers = mapOf("Referer" to "$mainUrl/")).document.requireContent(name)
         val fullHtml = document.html()
 
         val rawTitle = document.selectFirst("title")?.text() ?: ""
@@ -135,16 +137,16 @@ class DiziPal : MainAPI() {
             return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
                 addPoster(poster, mainUrl)
                 this.plot = description
-            }
+            }.withMetadata(document)
         }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
             addPoster(poster, mainUrl)
             this.plot = description
-        }
+        }.withMetadata(document)
     }
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
@@ -161,6 +163,8 @@ class DiziPal : MainAPI() {
         val decryptedRaw = try {
             decryptDizipal(ciphertext, ivHex, saltHex, k)
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             return false
         }
 
@@ -193,7 +197,7 @@ class DiziPal : MainAPI() {
                 name = name,
                 url = masterUrl,
                 referer = iframeUrl,
-                quality = Qualities.P1080.value,
+                quality = Qualities.Unknown.value,
                 type = ExtractorLinkType.M3U8,
                 headers = mapOf(
                     "Referer" to iframeUrl,

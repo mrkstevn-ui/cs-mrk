@@ -8,7 +8,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.nio.charset.StandardCharsets
 
-class FilmKovasi : MainAPI() {
+class FilmKovasi : AdaptiveProvider() {
     override var mainUrl = "https://filmkovasi.co"
     override var name = "FilmKovası"
     override val hasMainPage = true
@@ -24,7 +24,7 @@ class FilmKovasi : MainAPI() {
         "$mainUrl/tur/bilim-kurgu-filmleri-izle/page/" to "Bilim Kurgu Filmleri"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
         val targetUrl = if (page <= 1) {
             request.data.replace("/page/", "/")
         } else {
@@ -34,7 +34,7 @@ class FilmKovasi : MainAPI() {
         val document = app.get(
             targetUrl,
             headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
-        ).document
+        ).document.requireContent(name)
         val items = document.select(".movie-box, article, div.poster").mapNotNull { card ->
             toSearchResult(card)
         }.distinctBy { it.url }
@@ -58,12 +58,12 @@ class FilmKovasi : MainAPI() {
         }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val searchUrl = "$mainUrl/?s=${query.trim().replace(" ", "+")}"
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
+        val searchUrl = "$mainUrl/?s=${encodeQuery(query)}"
         val document = app.get(
             searchUrl,
             headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
-        ).document.cleanNoise()
+        ).document.requireContent(name).cleanNoise()
 
         val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items") ?: document
         return container.select(".movie-box, article, div.poster").mapNotNull { card ->
@@ -71,11 +71,11 @@ class FilmKovasi : MainAPI() {
         }.filter { it.isMatch(query) }.distinctBy { it.url }
     }
 
-    override suspend fun load(url: String): LoadResponse {
+    override suspend fun loadProvider(url: String): LoadResponse {
         val document = app.get(
             url,
             headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
-        ).document
+        ).document.requireContent(name)
 
         val title = document.selectFirst("h1, .film-title, meta[property='og:title']")?.let {
             if (it.tagName() == "meta") it.attr("content") else it.text()
@@ -99,10 +99,10 @@ class FilmKovasi : MainAPI() {
             addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
-        }
+        }.withMetadata(document)
     }
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
@@ -158,6 +158,8 @@ class FilmKovasi : MainAPI() {
                     }
                 }
             } catch (e: Exception) {
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
                 // Ignore
             }
         }

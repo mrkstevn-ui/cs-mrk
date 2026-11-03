@@ -5,7 +5,7 @@ import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
-class DiziGecesi : MainAPI() {
+class DiziGecesi : AdaptiveProvider() {
     override var mainUrl = "https://dizigecesi.com"
     override var name = "DiziGecesi"
     override val hasMainPage = true
@@ -19,14 +19,14 @@ class DiziGecesi : MainAPI() {
         "$mainUrl/populer" to "Popüler İçerikler"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
         val targetUrl = if (request.data.contains("?page=")) {
             "${request.data}$page"
         } else {
             request.data
         }
 
-        val document = app.get(targetUrl, headers = mapOf("Referer" to "$mainUrl/tr")).document
+        val document = app.get(targetUrl, headers = mapOf("Referer" to "$mainUrl/tr")).document.requireContent(name)
         val items = document.select("a.card-series, a[class*='home-slider-item']").mapNotNull { card ->
             toSearchResult(card)
         }.distinctBy { it.url }
@@ -57,18 +57,18 @@ class DiziGecesi : MainAPI() {
         }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val encodedQuery = query.trim().replace(" ", "+")
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
+        val encodedQuery = encodePathSegment(query)
         val searchUrl = "$mainUrl/arama/$encodedQuery"
-        val document = app.get(searchUrl, headers = mapOf("Referer" to "$mainUrl/tr")).document
+        val document = app.get(searchUrl, headers = mapOf("Referer" to "$mainUrl/tr")).document.requireContent(name)
 
         return document.select("a.card-series").mapNotNull { card ->
             toSearchResult(card)
         }.distinctBy { it.url }
     }
 
-    override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url, headers = mapOf("Referer" to "$mainUrl/tr")).document
+    override suspend fun loadProvider(url: String): LoadResponse {
+        val document = app.get(url, headers = mapOf("Referer" to "$mainUrl/tr")).document.requireContent(name)
         val title = document.selectFirst("h1, .series-info-heading__title, meta[property='og:title']")?.let {
             if (it.tagName() == "meta") it.attr("content") else it.text()
         }?.replace("İzle", "", ignoreCase = true)?.replace("- Dizigecesi", "", ignoreCase = true)?.trim() ?: "DiziGecesi"
@@ -112,7 +112,7 @@ class DiziGecesi : MainAPI() {
                 this.plot = description
                 this.year = year
                 this.tags = tags
-            }
+            }.withMetadata(document)
         }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
@@ -120,16 +120,16 @@ class DiziGecesi : MainAPI() {
             this.plot = description
             this.year = year
             this.tags = tags
-        }
+        }.withMetadata(document)
     }
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val document = app.get(data, headers = mapOf("Referer" to "$mainUrl/")).document
+        val document = app.get(data, headers = mapOf("Referer" to "$mainUrl/")).document.requireContent(name)
 
         // Collect all embed IDs
         val embedIds = document.select("[data-embed]").mapNotNull { el ->
@@ -164,6 +164,8 @@ class DiziGecesi : MainAPI() {
                     }
                 }
             } catch (e: Exception) {
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
                 // Continue to next alternative player
             }
         }

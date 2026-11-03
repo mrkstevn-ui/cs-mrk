@@ -7,7 +7,7 @@ import org.json.JSONArray
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
-class DiziYou : MainAPI() {
+class DiziYou : AdaptiveProvider() {
     override var mainUrl = "https://diziyou.net"
     override var name = "DiziYou"
     override val hasMainPage = true
@@ -25,7 +25,7 @@ class DiziYou : MainAPI() {
         "$mainUrl/tur/fantastik/page/" to "Fantastik"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
         val targetUrl = if (page <= 1) {
             request.data.replace("/page/", "/")
         } else {
@@ -38,7 +38,7 @@ class DiziYou : MainAPI() {
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
             )
-        ).document
+        ).document.requireContent(name)
 
         val items = document.select("article.card").mapNotNull { card ->
             toSearchResult(card)
@@ -71,15 +71,15 @@ class DiziYou : MainAPI() {
         }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val searchUrl = "$mainUrl/?s=${query.trim().replace(" ", "+")}"
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
+        val searchUrl = "$mainUrl/?s=${encodeQuery(query)}"
         val document = app.get(
             searchUrl,
             headers = mapOf(
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
             )
-        ).document.cleanNoise()
+        ).document.requireContent(name).cleanNoise()
 
         val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, main") ?: document
         return container.select("article.card, a[href*='/dizi/'], a[href*='/film/']").mapNotNull { card ->
@@ -105,14 +105,14 @@ class DiziYou : MainAPI() {
         }.filter { it.isMatch(query) }.distinctBy { it.url }
     }
 
-    override suspend fun load(url: String): LoadResponse {
+    override suspend fun loadProvider(url: String): LoadResponse {
         val document = app.get(
             url,
             headers = mapOf(
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
             )
-        ).document
+        ).document.requireContent(name)
 
         val title = document.selectFirst("h1, .dizi-title, meta[property='og:title']")?.let {
             if (it.tagName() == "meta") it.attr("content") else it.text()
@@ -136,47 +136,27 @@ class DiziYou : MainAPI() {
                 addPoster(poster, mainUrl)
                 this.plot = description
                 this.year = year
-            }
+            }.withMetadata(document)
         }
 
-        // Series: Extract slug
-        val slug = url.trimEnd('/').substringAfterLast('/')
-        val episodes = mutableListOf<Episode>()
-
-        // Check season buttons
-        val seasonButtons = document.select("button[data-season-number]")
-        if (seasonButtons.isNotEmpty()) {
-            for (btn in seasonButtons) {
-                val seasonNum = btn.attr("data-season-number").toIntOrNull() ?: 1
-                val totalEps = btn.attr("data-total-episodes").toIntOrNull() ?: 1
-
-                for (ep in 1..totalEps) {
-                    val epUrl = "$mainUrl/bolum/$slug-$seasonNum-sezon-$ep-bolum/"
-                    episodes.add(
-                        newEpisode(epUrl) {
-                            this.name = "Sezon $seasonNum Bölüm $ep"
-                            this.season = seasonNum
-                            this.episode = ep
-                        }
-                    )
-                }
-            }
-        } else {
-            // Fallback: Check links to /bolum/
-            document.select("a[href*='/bolum/']").forEach { linkEl ->
-                val epHref = fixUrlNull(linkEl.attr("href")) ?: return@forEach
-                val epMatch = Regex("""(\d+)-sezon-(\d+)-bolum""").find(epHref)
-                val s = epMatch?.groupValues?.get(1)?.toIntOrNull() ?: 1
-                val e = epMatch?.groupValues?.get(2)?.toIntOrNull() ?: 1
-                val epName = linkEl.text().trim().ifEmpty { "Sezon $s Bölüm $e" }
-
-                episodes.add(
-                    newEpisode(epHref) {
-                        this.name = epName
-                        this.season = s
-                        this.episode = e
-                    }
-                )
+        // Only publish episode URLs actually supplied by this series page.
+        val records = document.episodeRecords(url).toMutableList()
+        val seasonPages = document.select("button[data-season-number][data-url], a[data-season-number][href]")
+            .mapNotNull { resolveHttpUrl(it.attr("data-url").ifBlank { it.attr("href") }, url) }
+            .filter { httpOrigin(it) == httpOrigin(url) && it != url }.distinct()
+        check(seasonPages.size <= 100) { "DiziYou: unexpected season page count" }
+        // A populated first season does not mean later seasons have already been loaded.
+        for (seasonPage in seasonPages) {
+            val seasonDoc = app.get(seasonPage, headers = mapOf("Referer" to url), timeout = 10L)
+                .document.requireContent(name)
+            records.addAll(seasonDoc.episodeRecords(url))
+        }
+        if (records.isEmpty()) throw IllegalStateException("DiziYou: no explicit episode records; site format may have changed")
+        val episodes = records.distinctBy { it.url }.map { record ->
+            newEpisode(record.url) {
+                this.name = record.title
+                this.season = record.season
+                this.episode = record.number
             }
         }
 
@@ -184,10 +164,10 @@ class DiziYou : MainAPI() {
             addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
-        }
+        }.withMetadata(document)
     }
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
@@ -204,16 +184,17 @@ class DiziYou : MainAPI() {
                 )
             )
             val html = response.text
-            val doc = Jsoup.parse(html)
+            val doc = Jsoup.parse(html, response.url).requireContent(name)
 
             doc.select("iframe").forEach { iframe ->
-                val src = fixUrlNull(iframe.attr("src").ifBlank { iframe.attr("data-src") }) ?: return@forEach
+                val src = resolveHttpUrl(iframe.attr("src").ifBlank { iframe.attr("data-src") }, response.url) ?: return@forEach
 
                 if (src.contains("ksdpictures.site/dzembed.php")) {
                     try {
-                        val embedHtml = app.get(src, headers = mapOf("Referer" to "$mainUrl/")).text
+                        val embedResponse = app.get(src, headers = mapOf("Referer" to response.url))
+                        val embedHtml = embedResponse.text
                         val sourceMatch = Regex("""var\s+SOURCE\s*=\s*["']([^"']+)["']""").find(embedHtml)
-                        val m3u8Url = sourceMatch?.groupValues?.get(1)
+                        val m3u8Url = resolveHttpUrl(sourceMatch?.groupValues?.get(1), embedResponse.url)
 
                         if (m3u8Url != null && m3u8Url.isNotBlank()) {
                             callback.invoke(
@@ -221,8 +202,8 @@ class DiziYou : MainAPI() {
                                     name = this.name,
                                     source = this.name,
                                     url = m3u8Url,
-                                    referer = "https://ksdpictures.site/",
-                                    quality = Qualities.P1080.value,
+                                    referer = embedResponse.url,
+                                    quality = Qualities.Unknown.value,
                                     type = ExtractorLinkType.M3U8
                                 )
                             )
@@ -235,7 +216,7 @@ class DiziYou : MainAPI() {
                             val jsonArray = JSONArray(tracksJson)
                             for (i in 0 until jsonArray.length()) {
                                 val track = jsonArray.getJSONObject(i)
-                                val subFile = track.optString("file")
+                                val subFile = resolveHttpUrl(track.optString("file"), embedResponse.url) ?: continue
                                 val subLabel = track.optString("label").ifEmpty { "Altyazı" }
                                 if (subFile.isNotBlank()) {
                                     subtitleCallback.invoke(SubtitleFile(subLabel, subFile))
@@ -243,6 +224,8 @@ class DiziYou : MainAPI() {
                             }
                         }
                     } catch (e: Exception) {
+                        if (e is java.util.concurrent.CancellationException) throw e
+                        reportStage("adapter", e)
                         // Ignore embed error
                     }
                 } else if (src.startsWith("http")) {
@@ -253,6 +236,8 @@ class DiziYou : MainAPI() {
                 }
             }
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             // Ignore
         }
 

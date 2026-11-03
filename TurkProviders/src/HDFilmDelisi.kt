@@ -7,7 +7,7 @@ import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
-class HDFilmDelisi : MainAPI() {
+class HDFilmDelisi : AdaptiveProvider() {
     override var mainUrl = "https://hdfilmdelisi.one"
     override var name = "HDFilmDelisi"
     override val hasMainPage = true
@@ -27,7 +27,7 @@ class HDFilmDelisi : MainAPI() {
         "$mainUrl/tur/animasyon" to "Animasyon Filmleri"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
         val targetUrl = request.data
         val document = app.get(
             targetUrl,
@@ -35,7 +35,7 @@ class HDFilmDelisi : MainAPI() {
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
             )
-        ).document
+        ).document.requireContent(name)
 
         val items = document.select("a[href*='/film/']").mapNotNull { card ->
             toSearchResult(card)
@@ -66,11 +66,11 @@ class HDFilmDelisi : MainAPI() {
         }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
         val results = mutableListOf<SearchResponse>()
         try {
             // 1. Next.js JSON Arama API'si
-            val searchApiUrl = "$mainUrl/api/search?q=${query.trim().replace(" ", "+")}"
+            val searchApiUrl = "$mainUrl/api/search?q=${encodeQuery(query)}"
             val resText = app.get(
                 searchApiUrl,
                 headers = mapOf(
@@ -120,22 +120,26 @@ class HDFilmDelisi : MainAPI() {
                 }
             }
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             // Fallback: HTML search
             try {
-                val searchUrl = "$mainUrl/?s=${query.trim().replace(" ", "+")}"
+                val searchUrl = "$mainUrl/?s=${encodeQuery(query)}"
                 val document = app.get(
                     searchUrl,
                     headers = mapOf(
                         "User-Agent" to TURK_USER_AGENT,
                         "Referer" to "$mainUrl/"
                     )
-                ).document.cleanNoise()
+                ).document.requireContent(name).cleanNoise()
 
                 val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, main") ?: document
                 container.select("a[href*='/film/']").forEach { card ->
                     toSearchResult(card)?.let { results.add(it) }
                 }
             } catch (e2: Exception) {
+                if (e2 is java.util.concurrent.CancellationException) throw e2
+                reportStage("adapter", e2)
                 // Ignore
             }
         }
@@ -143,14 +147,14 @@ class HDFilmDelisi : MainAPI() {
         return results.filter { it.isMatch(query) }.distinctBy { it.url }
     }
 
-    override suspend fun load(url: String): LoadResponse {
+    override suspend fun loadProvider(url: String): LoadResponse {
         val document = app.get(
             url,
             headers = mapOf(
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
             )
-        ).document
+        ).document.requireContent(name)
 
         val rawTitle = document.selectFirst("h1")?.text()
             ?: document.selectFirst("meta[property='og:title']")?.attr("content")
@@ -176,7 +180,7 @@ class HDFilmDelisi : MainAPI() {
             addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
-        }
+        }.withMetadata(document)
     }
 
     private fun deobfuscateVixolity(hex: String, shift: Int): String {
@@ -225,7 +229,7 @@ class HDFilmDelisi : MainAPI() {
         return sb.toString()
     }
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
@@ -288,7 +292,7 @@ class HDFilmDelisi : MainAPI() {
                                         source = this.name,
                                         url = streamUrl,
                                         referer = "https://pl.vixolity.com/",
-                                        quality = Qualities.P1080.value,
+                                        quality = Qualities.Unknown.value,
                                         type = ExtractorLinkType.M3U8,
                                         headers = mapOf(
                                             "Referer" to "https://pl.vixolity.com/",
@@ -301,6 +305,8 @@ class HDFilmDelisi : MainAPI() {
                         }
                     }
                 } catch (e: Exception) {
+                    if (e is java.util.concurrent.CancellationException) throw e
+                    reportStage("adapter", e)
                     // Ignore vixolity extraction error
                 }
             }
@@ -317,6 +323,8 @@ class HDFilmDelisi : MainAPI() {
                 }
             }
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             // Ignore
         }
 

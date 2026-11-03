@@ -11,7 +11,7 @@ import org.mozilla.javascript.Context
 import org.mozilla.javascript.Scriptable
 import java.util.regex.Pattern
 
-class HDFilmCehennemi : MainAPI() {
+class HDFilmCehennemi : AdaptiveProvider() {
     override var mainUrl = "https://www.hdfilmcehennemi.nl"
     override var name = "HDFilmcehennemi"
     override val hasMainPage = true
@@ -62,9 +62,9 @@ class HDFilmCehennemi : MainAPI() {
         "$mainUrl/tur/bilim-kurgu-filmleri-izle/" to "Bilim Kurgu Filmleri"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
         val targetUrl = if (page <= 1) request.data else "${request.data.removeSuffix("/")}/page/$page/"
-        val doc = app.get(targetUrl, headers = standardHeaders).document
+        val doc = app.get(targetUrl, headers = standardHeaders).document.requireContent(name)
 
         val movies = doc.select("a[href^=\"$mainUrl/\"], a[href^=\"/\"]").filter {
             val href = it.attr("href")
@@ -77,7 +77,7 @@ class HDFilmCehennemi : MainAPI() {
     }
 
     // 2. ARAMA MOTORU
-    override suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
         val searchUrl = "$mainUrl/search?q=$query"
         val searchHeaders = standardHeaders + mapOf(
             "Content-Type" to "application/json",
@@ -115,13 +115,15 @@ class HDFilmCehennemi : MainAPI() {
             }
             searchResponses
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             emptyList()
         }
     }
 
     // 3. FİLM VE DİZİ DETAY SAYFASI
-    override suspend fun load(url: String): LoadResponse {
-        val doc = app.get(url, headers = standardHeaders).document
+    override suspend fun loadProvider(url: String): LoadResponse {
+        val doc = app.get(url, headers = standardHeaders).document.requireContent(name)
         val title = doc.selectFirst("h1")?.text()?.replace(" izle", "")?.trim() ?: "Film"
         val img = doc.selectFirst("div.poster img, img.poster, img")
         val poster = fixHdPosterUrl(cleanPosterUrl(img, mainUrl)) ?: doc.selectFirst("meta[property='og:image']")?.attr("content")
@@ -146,17 +148,17 @@ class HDFilmCehennemi : MainAPI() {
             return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.distinctBy { it.data }) {
                 addPoster(poster, mainUrl)
                 this.plot = plot
-            }
+            }.withMetadata(doc)
         }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
             addPoster(poster, mainUrl)
             this.plot = plot
-        }
+        }.withMetadata(doc)
     }
 
     // 4. CANLI VİDEO AKIŞI ÇÖZÜCÜ (Deobfuscator & HLS Extractor)
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
@@ -209,7 +211,8 @@ class HDFilmCehennemi : MainAPI() {
                                     foundAny = true
                                 }
                             } catch (e: Exception) {
-                                e.printStackTrace()
+                                if (e is java.util.concurrent.CancellationException) throw e
+                                reportStage("adapter", e)
                             }
                         } else {
                             loadExtractor(playerUrl, data, subtitleCallback, callback)
@@ -218,7 +221,8 @@ class HDFilmCehennemi : MainAPI() {
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
             }
         }
 
@@ -254,7 +258,8 @@ class HDFilmCehennemi : MainAPI() {
                     foundAny = true
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
             }
         }
 
@@ -303,7 +308,8 @@ class HDFilmCehennemi : MainAPI() {
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
             }
         }
 
@@ -376,7 +382,7 @@ class HDFilmCehennemi : MainAPI() {
                         type = ExtractorLinkType.M3U8
                     ) {
                         this.referer = refererUrl
-                        this.quality = Qualities.P1080.value
+                        this.quality = Qualities.Unknown.value
                         this.headers = streamHeaders
                     }
                 )
@@ -392,14 +398,15 @@ class HDFilmCehennemi : MainAPI() {
                             type = ExtractorLinkType.M3U8
                         ) {
                             this.referer = refererUrl
-                            this.quality = Qualities.P1080.value
+                            this.quality = Qualities.Unknown.value
                             this.headers = streamHeaders
                         }
                     )
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
         } finally {
             Context.exit()
         }

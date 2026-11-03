@@ -5,7 +5,7 @@ import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
-class RareFilmm : MainAPI() {
+class RareFilmm : AdaptiveProvider() {
     override var mainUrl = "https://rarefilmm.com"
     override var name = "RareFilmm"
     override val hasMainPage = true
@@ -24,14 +24,14 @@ class RareFilmm : MainAPI() {
         "$mainUrl/category/crime/page/" to "Crime"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
         val targetUrl = if (page <= 1) {
             request.data.replace("/page/", "/")
         } else {
             "${request.data}$page/"
         }
 
-        val document = app.get(targetUrl, headers = mapOf("Referer" to "$mainUrl/")).document
+        val document = app.get(targetUrl, headers = mapOf("Referer" to "$mainUrl/")).document.requireContent(name)
 
         val items = document.select("div.post, article.excerpt").mapNotNull { card ->
             toSearchResult(card)
@@ -58,9 +58,9 @@ class RareFilmm : MainAPI() {
         }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val searchUrl = "$mainUrl/?s=${query.trim().replace(" ", "+")}"
-        val document = app.get(searchUrl, headers = mapOf("Referer" to "$mainUrl/")).document.cleanNoise()
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
+        val searchUrl = "$mainUrl/?s=${encodeQuery(query)}"
+        val document = app.get(searchUrl, headers = mapOf("Referer" to "$mainUrl/")).document.requireContent(name).cleanNoise()
         val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, main") ?: document
 
         return container.select("div.post, article.excerpt, .entry-header").mapNotNull { card ->
@@ -68,8 +68,8 @@ class RareFilmm : MainAPI() {
         }.filter { it.isMatch(query) }.distinctBy { it.url }
     }
 
-    override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url, headers = mapOf("Referer" to "$mainUrl/")).document
+    override suspend fun loadProvider(url: String): LoadResponse {
+        val document = app.get(url, headers = mapOf("Referer" to "$mainUrl/")).document.requireContent(name)
 
         val title = document.selectFirst("h1.entry-title")?.text()?.trim()
             ?: document.selectFirst("meta[property='og:title']")?.attr("content")
@@ -90,10 +90,10 @@ class RareFilmm : MainAPI() {
             addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
-        }
+        }.withMetadata(document)
     }
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
@@ -103,13 +103,11 @@ class RareFilmm : MainAPI() {
 
         try {
             val response = app.get(data, headers = mapOf("Referer" to "$mainUrl/"))
-            val document = response.document
+            val document = response.document.requireContent(name)
 
             document.select("iframe").forEach { iframe ->
-                var src = iframe.attr("src").ifBlank { iframe.attr("data-src") }
-                if (src.startsWith("//")) {
-                    src = "https:$src"
-                }
+                val src = resolveHttpUrl(iframe.attr("src").ifBlank { iframe.attr("data-src") }, response.url)
+                    ?: return@forEach
 
                 if (src.startsWith("http")) {
                     val loaded = loadExtractor(src, "$mainUrl/", subtitleCallback, callback)
@@ -119,6 +117,8 @@ class RareFilmm : MainAPI() {
                 }
             }
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             // Ignore
         }
 

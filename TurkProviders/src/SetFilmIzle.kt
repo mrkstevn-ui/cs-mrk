@@ -8,7 +8,7 @@ import org.json.JSONObject
 import org.jsoup.Jsoup
 import java.util.Random
 
-class SetFilmIzle : MainAPI() {
+class SetFilmIzle : AdaptiveProvider() {
     override var mainUrl = "https://www.setfilmizle.ltd"
     override var name = "SetFilmIzle"
     override val hasMainPage = true
@@ -25,17 +25,17 @@ class SetFilmIzle : MainAPI() {
         "$mainUrl/yerli-filmler/page/" to "Yerli Filmler"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
         val url = "${request.data}$page/"
         val res = app.get(
             url,
             headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
         ).text
-        val doc = Jsoup.parse(res)
+        val doc = Jsoup.parse(res, url).requireContent(name)
         val items = mutableListOf<SearchResponse>()
 
         for (cardLink in doc.select("a.card-link")) {
-            val href = cardLink.attr("href")
+            val href = resolveHttpUrl(cardLink.attr("href"), url) ?: continue
             val article = cardLink.selectFirst("article.card") ?: continue
             val title = article.selectFirst(".card-ad, h2, h3")?.text()?.trim()
                 ?: article.selectFirst("img")?.attr("alt")?.trim() ?: continue
@@ -57,18 +57,18 @@ class SetFilmIzle : MainAPI() {
         return newHomePageResponse(request.name, items)
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/?s=${query.trim().replace(" ", "+")}"
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
+        val url = "$mainUrl/?s=${encodeQuery(query)}"
         val res = app.get(
             url,
             headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
         ).text
-        val doc = Jsoup.parse(res).cleanNoise()
+        val doc = Jsoup.parse(res, url).requireContent(name).cleanNoise()
         val items = mutableListOf<SearchResponse>()
 
         val container = doc.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items") ?: doc
         for (cardLink in container.select("a.card-link")) {
-            val href = cardLink.attr("href")
+            val href = resolveHttpUrl(cardLink.attr("href"), url) ?: continue
             val article = cardLink.selectFirst("article.card") ?: continue
             val title = article.selectFirst(".card-ad, h2, h3")?.text()?.trim()
                 ?: article.selectFirst("img")?.attr("alt")?.trim() ?: continue
@@ -91,23 +91,23 @@ class SetFilmIzle : MainAPI() {
         return items.distinctBy { it.url }
     }
 
-    override suspend fun load(url: String): LoadResponse {
+    override suspend fun loadProvider(url: String): LoadResponse {
         val res = app.get(
             url,
             headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
         ).text
-        val doc = Jsoup.parse(res)
+        val doc = Jsoup.parse(res, url).requireContent(name)
 
         val title = doc.selectFirst("h1.stf-title, h1")?.text()?.trim() ?: "Bilinmeyen Başlık"
         val poster = cleanPosterUrl(doc.selectFirst(".fplayer-before img, .poster-art img, img"), mainUrl)
         val plot = doc.selectFirst(".hcard-ozet, .film-ozet, .entry-content p")?.text()?.trim()
-        val year = Regex("""\b(19\d\d|20\d\d)\b""").find(res)?.value?.toIntOrNull()
+        val year = doc.contentMetadata().year ?: Regex("""\b(19\d\d|20\d\d)\b""").find(doc.selectFirst(".year, .film-year, .hcard-yil")?.text().orEmpty())?.value?.toIntOrNull()
 
         if (url.contains("/dizi/")) {
             val episodes = mutableListOf<Episode>()
             val epElements = doc.select("a.fep")
             for (epElem in epElements) {
-                val epHref = epElem.attr("href")
+                val epHref = resolveHttpUrl(epElem.attr("href"), url) ?: continue
                 val epTitle = epElem.selectFirst(".fep-title")?.text()?.trim() ?: "Bölüm"
                 val seasonMatch = Regex("""(\d+)-sezon-(\d+)-bolum""").find(epHref)
                 val season = seasonMatch?.groupValues?.get(1)?.toIntOrNull() ?: 1
@@ -126,13 +126,13 @@ class SetFilmIzle : MainAPI() {
                 addPoster(poster, mainUrl)
                 this.plot = plot
                 this.year = year
-            }
+            }.withMetadata(doc)
         } else {
             return newMovieLoadResponse(title, url, TvType.Movie, url) {
                 addPoster(poster, mainUrl)
                 this.plot = plot
                 this.year = year
-            }
+            }.withMetadata(doc)
         }
     }
 
@@ -162,7 +162,7 @@ class SetFilmIzle : MainAPI() {
         return "$nVal.$rStr.$hStr"
     }
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
@@ -238,6 +238,8 @@ class SetFilmIzle : MainAPI() {
                                             }
                                         }
                                     } catch (e: Exception) {
+                                        if (e is java.util.concurrent.CancellationException) throw e
+                                        reportStage("adapter", e)
                                         // Ignore
                                     }
                                 }
@@ -252,7 +254,7 @@ class SetFilmIzle : MainAPI() {
                                             source = "SetFilmIzle",
                                             url = manifestFullUrl,
                                             referer = decryptedFastplayUrl,
-                                            quality = Qualities.P1080.value,
+                                            quality = Qualities.Unknown.value,
                                             type = ExtractorLinkType.M3U8,
                                             headers = mapOf(
                                                 "X-Sp" to xSp,
@@ -272,10 +274,14 @@ class SetFilmIzle : MainAPI() {
                         }
                     }
                 } catch (e: Exception) {
+                    if (e is java.util.concurrent.CancellationException) throw e
+                    reportStage("adapter", e)
                     // Ignore per-player errors
                 }
             }
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             // Ignore
         }
 

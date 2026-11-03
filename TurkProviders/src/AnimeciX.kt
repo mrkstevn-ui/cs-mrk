@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
-class AnimeciX : MainAPI() {
+class AnimeciX : AdaptiveProvider() {
     override var mainUrl = "https://animecix.tv"
     override var name = "AnimeciX"
     override val hasMainPage = true
@@ -48,7 +48,7 @@ class AnimeciX : MainAPI() {
         @JsonProperty("lists") val lists: List<GuestList>? = null
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
         val items = mutableListOf<SearchResponse>()
         try {
             if (request.data.contains("last-episodes")) {
@@ -75,7 +75,8 @@ class AnimeciX : MainAPI() {
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
         }
         return newHomePageResponse(request.name, items.distinctBy { it.url })
     }
@@ -91,8 +92,8 @@ class AnimeciX : MainAPI() {
         @JsonProperty("results") val results: List<SearchItem>? = null
     )
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val searchUrl = "$mainUrl/secure/search/${query.trim()}"
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
+        val searchUrl = "$mainUrl/secure/search/${encodePathSegment(query)}"
         return try {
             val json = app.get(searchUrl, headers = mapOf("Referer" to "$mainUrl/")).text
             val data = AppUtils.parseJson<SearchResponseData>(json)
@@ -105,6 +106,8 @@ class AnimeciX : MainAPI() {
                 }
             } ?: emptyList()
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             emptyList()
         }
     }
@@ -136,7 +139,7 @@ class AnimeciX : MainAPI() {
         @JsonProperty("seasons") val seasons: List<BatchSeason>? = null
     )
 
-    override suspend fun load(url: String): LoadResponse {
+    override suspend fun loadProvider(url: String): LoadResponse {
         val titleId = Regex("titles/(\\d+)").find(url)?.groupValues?.get(1)?.toIntOrNull()
             ?: throw ErrorLoadingException("Geçersiz Anime ID")
 
@@ -195,7 +198,7 @@ class AnimeciX : MainAPI() {
         @JsonProperty("urls") val urls: List<VideoStreamUrl>? = null
     )
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
@@ -212,11 +215,11 @@ class AnimeciX : MainAPI() {
         try {
             // 1. Get XSRF token
             val bootstrapResp = app.get(
-                "$mainUrl/secure/bootstrap-data?original_url=https%3A%2F%2Fanimecix.tv",
+                "$mainUrl/secure/bootstrap-data?original_url=${encodeQuery(mainUrl)}",
                 headers = mapOf("Referer" to "$mainUrl/")
             )
             val cookies = bootstrapResp.cookies
-            val xsrfToken = cookies["XSRF-TOKEN"] ?: ""
+            val xsrfToken = cookies["XSRF-TOKEN"]?.let { java.net.URLDecoder.decode(it, "UTF-8") } ?: return false
 
             // 2. Request videos with CSRF token
             val payload = mapOf(
@@ -241,11 +244,11 @@ class AnimeciX : MainAPI() {
                 // Direct MP4 URLs
                 vItem.urls?.forEach { u ->
                     val streamUrl = u.url ?: return@forEach
-                    val quality = u.label?.filter { it.isDigit() }?.toIntOrNull() ?: Qualities.P1080.value
+                    val quality = u.label?.filter { it.isDigit() }?.toIntOrNull() ?: Qualities.Unknown.value
                     callback.invoke(
                         newExtractorLink(
                             source = "AnimeciX",
-                            name = "AnimeciX [${u.label ?: "1080p"}] (${vItem.translator ?: "Tau"})",
+                            name = "AnimeciX [${u.label ?: "Bilinmeyen"}] (${vItem.translator ?: "Tau"})",
                             url = streamUrl,
                             type = ExtractorLinkType.VIDEO
                         ) {
@@ -268,11 +271,11 @@ class AnimeciX : MainAPI() {
                         val tauData = AppUtils.parseJson<TauVideoResponse>(tauJson)
                         tauData.urls?.forEach { tu ->
                             val tUrl = tu.url ?: return@forEach
-                            val quality = tu.label?.filter { it.isDigit() }?.toIntOrNull() ?: Qualities.P1080.value
+                            val quality = tu.label?.filter { it.isDigit() }?.toIntOrNull() ?: Qualities.Unknown.value
                             callback.invoke(
                                 newExtractorLink(
                                     source = "Tau Video",
-                                    name = "Tau Video [${tu.label ?: "1080p"}]",
+                                    name = "Tau Video [${tu.label ?: "Bilinmeyen"}]",
                                     url = tUrl,
                                     type = ExtractorLinkType.VIDEO
                                 ) {
@@ -283,12 +286,14 @@ class AnimeciX : MainAPI() {
                             foundAny = true
                         }
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        if (e is java.util.concurrent.CancellationException) throw e
+                        reportStage("adapter", e)
                     }
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
         }
 
         return foundAny

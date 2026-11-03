@@ -6,16 +6,16 @@ import org.json.JSONObject
 import org.jsoup.nodes.Document
 import java.util.regex.Pattern
 
-class Dizigom : MainAPI() {
+class Dizigom : AdaptiveProvider() {
     override var mainUrl = "https://www.dizigom.news"
     override var name = "Dizigom"
     override val hasMainPage = true
     override var lang = "tr"
     override val supportedTypes = setOf(TvType.TvSeries, TvType.Movie, TvType.Anime)
 
-    private val standardHeaders = mapOf(
+    private val standardHeaders get() = mapOf(
         "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Referer" to "https://www.dizigom.news/"
+        "Referer" to "$mainUrl/"
     )
 
     override val mainPage = mainPageOf(
@@ -25,7 +25,7 @@ class Dizigom : MainAPI() {
         "animes" to "Animeler"
     )
 
-    override suspend fun getMainPage(
+    override suspend fun mainPageProvider(
         page: Int,
         request: MainPageRequest
     ): HomePageResponse {
@@ -36,7 +36,7 @@ class Dizigom : MainAPI() {
             if (page <= 1) "$mainUrl/$path/" else "$mainUrl/$path/?page=$page"
         }
 
-        val doc = app.get(url, headers = standardHeaders).document
+        val doc = app.get(url, headers = standardHeaders).document.requireContent(name)
         val items = doc.select("a.group.block, a.group[href*='/diziler/'], a.group[href*='/film/'], a.group[href*='/anime/']").mapNotNull {
             toSearchResult(it)
         }.distinctBy { it.url }
@@ -75,21 +75,23 @@ class Dizigom : MainAPI() {
         }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
         return try {
-            val searchUrl = "$mainUrl/ara?q=${query.trim().replace(" ", "+")}"
-            val doc = app.get(searchUrl, headers = standardHeaders).document.cleanNoise()
+            val searchUrl = "$mainUrl/ara?q=${encodeQuery(query)}"
+            val doc = app.get(searchUrl, headers = standardHeaders).document.requireContent(name).cleanNoise()
             val container = doc.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, main") ?: doc
             container.select("a.group.block, a.group[href*='/diziler/'], a.group[href*='/film/'], a.group[href*='/anime/']").mapNotNull {
                 toSearchResult(it)
             }.filter { it.isMatch(query) }.distinctBy { it.url }
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             emptyList()
         }
     }
 
-    override suspend fun load(url: String): LoadResponse? {
-        val doc = app.get(url, headers = standardHeaders).document
+    override suspend fun loadProvider(url: String): LoadResponse? {
+        val doc = app.get(url, headers = standardHeaders).document.requireContent(name)
 
         val title = doc.selectFirst("h1")?.text()
             ?: doc.selectFirst("meta[property=og:title]")?.attr("content")?.substringBefore(" izle")?.trim()
@@ -112,7 +114,7 @@ class Dizigom : MainAPI() {
                 this.plot = plot
                 this.year = year
                 this.tags = tags
-            }
+            }.withMetadata(doc)
         }
 
         // Dizi ve Anime Bölüm Ayrıştırma
@@ -128,10 +130,11 @@ class Dizigom : MainAPI() {
             val sNum = Regex("""sezon=(\d+)""").find(sLink)?.groupValues?.get(1)?.toIntOrNull() ?: continue
             if (sNum == 1) continue // 1. Sezon zaten çekildi
             try {
-                val sDoc = app.get(sLink, headers = standardHeaders).document
+                val sDoc = app.get(sLink, headers = standardHeaders).document.requireContent(name)
                 allEpisodes.addAll(parseEpisodesFromDoc(sDoc, sNum))
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
             }
         }
 
@@ -144,7 +147,7 @@ class Dizigom : MainAPI() {
             this.plot = plot
             this.year = year
             this.tags = tags
-        }
+        }.withMetadata(doc)
     }
 
     private fun parseEpisodesFromDoc(doc: Document, defaultSeason: Int): List<Episode> {
@@ -176,7 +179,7 @@ class Dizigom : MainAPI() {
         return list
     }
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
@@ -227,12 +230,12 @@ class Dizigom : MainAPI() {
                 callback.invoke(
                     newExtractorLink(
                         source = name,
-                        name = "$name (1080p Çift Dil)",
+                        name = "$name (Çift Dil)",
                         url = hlsUrl,
                         type = ExtractorLinkType.M3U8
                     ) {
                         this.referer = "https://$host/"
-                        this.quality = Qualities.P1080.value
+                        this.quality = Qualities.Unknown.value
                         this.headers = streamHeaders
                     }
                 )
@@ -253,7 +256,8 @@ class Dizigom : MainAPI() {
 
             true
         } catch (e: Exception) {
-            e.printStackTrace()
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             false
         }
     }

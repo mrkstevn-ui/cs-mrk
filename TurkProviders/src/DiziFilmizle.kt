@@ -13,7 +13,7 @@ import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
-class DiziFilmizle : MainAPI() {
+class DiziFilmizle : AdaptiveProvider() {
     override var mainUrl = "https://dizifilmizle.to"
     override var name = "DiziFilmizle"
     override val hasMainPage = true
@@ -26,14 +26,14 @@ class DiziFilmizle : MainAPI() {
         "$mainUrl/yabanci-dizi-izle" to "Yabancı Diziler"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get(
             request.data,
             headers = mapOf(
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
             )
-        ).document
+        ).document.requireContent(name)
         val items = mutableListOf<SearchResponse>()
 
         document.select("a[href*='/film/'], a[href*='/dizi/']").forEach { a ->
@@ -75,8 +75,8 @@ class DiziFilmizle : MainAPI() {
         @JsonProperty("results") val results: List<SearchItem>? = null
     )
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val searchUrl = "$mainUrl/api/search?q=${query.trim().replace(" ", "+")}"
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
+        val searchUrl = "$mainUrl/api/search?q=${encodeQuery(query)}"
         return try {
             val json = app.get(
                 searchUrl,
@@ -105,18 +105,20 @@ class DiziFilmizle : MainAPI() {
                 }
             } ?: emptyList()
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             emptyList()
         }
     }
 
-    override suspend fun load(url: String): LoadResponse {
+    override suspend fun loadProvider(url: String): LoadResponse {
         val document = app.get(
             url,
             headers = mapOf(
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
             )
-        ).document
+        ).document.requireContent(name)
         val isSeries = url.contains("/dizi/")
 
         val title = document.selectFirst("h1, meta[property='og:title']")?.let {
@@ -151,17 +153,17 @@ class DiziFilmizle : MainAPI() {
                 addPoster(poster, mainUrl)
                 this.plot = description
                 this.year = year
-            }
+            }.withMetadata(document)
         }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
             addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
-        }
+        }.withMetadata(document)
     }
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
@@ -173,7 +175,7 @@ class DiziFilmizle : MainAPI() {
                 "User-Agent" to TURK_USER_AGENT,
                 "Referer" to "$mainUrl/"
             )
-        ).document
+        ).document.requireContent(name)
         val html = document.html()
         var foundAny = false
 
@@ -237,12 +239,12 @@ class DiziFilmizle : MainAPI() {
                 callback.invoke(
                     newExtractorLink(
                         source = name,
-                        name = "$name ($label - 1080p)",
+                        name = "$name ($label)",
                         url = hlsUrl,
                         type = ExtractorLinkType.M3U8
                     ) {
                         this.referer = "https://vidmixi.com/"
-                        this.quality = Qualities.P1080.value
+                        this.quality = Qualities.Unknown.value
                         this.headers = streamHeaders
                     }
                 )
@@ -261,7 +263,8 @@ class DiziFilmizle : MainAPI() {
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
         }
     }
 

@@ -8,7 +8,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.nio.charset.StandardCharsets
 
-class FullHDFilmizlesene : MainAPI() {
+class FullHDFilmizlesene : AdaptiveProvider() {
     override var mainUrl = "https://www.fullhdfilmizlesene.now"
     override var name = "FullHDFilmizlesene"
     override val hasMainPage = true
@@ -23,7 +23,7 @@ class FullHDFilmizlesene : MainAPI() {
         "$mainUrl/filmizle/imdb-puani-yuksek-filmler" to "IMDb Yüksek Filmler"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
         val targetUrl = if (page <= 1) {
             request.data
         } else {
@@ -33,7 +33,7 @@ class FullHDFilmizlesene : MainAPI() {
         val document = app.get(
             targetUrl,
             headers = mapOf("Referer" to "$mainUrl/", "User-Agent" to TURK_USER_AGENT)
-        ).document
+        ).document.requireContent(name)
         val items = document.select("li.film").mapNotNull { card ->
             toSearchResult(card)
         }.distinctBy { it.url }
@@ -57,10 +57,10 @@ class FullHDFilmizlesene : MainAPI() {
         }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val encoded = query.trim().replace(" ", "+")
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
+        val encoded = encodePathSegment(query)
         val searchUrl = "$mainUrl/arama/$encoded"
-        val document = app.get(searchUrl, headers = mapOf("Referer" to "$mainUrl/", "User-Agent" to TURK_USER_AGENT)).document.cleanNoise()
+        val document = app.get(searchUrl, headers = mapOf("Referer" to "$mainUrl/", "User-Agent" to TURK_USER_AGENT)).document.requireContent(name).cleanNoise()
 
         val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, ul.films, main") ?: document
         return container.select("li.film").mapNotNull { card ->
@@ -68,8 +68,8 @@ class FullHDFilmizlesene : MainAPI() {
         }.filter { it.isMatch(query) }.distinctBy { it.url }
     }
 
-    override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url, headers = mapOf("Referer" to "$mainUrl/", "User-Agent" to TURK_USER_AGENT)).document
+    override suspend fun loadProvider(url: String): LoadResponse {
+        val document = app.get(url, headers = mapOf("Referer" to "$mainUrl/", "User-Agent" to TURK_USER_AGENT)).document.requireContent(name)
 
         val title = document.selectFirst("h1, .film-title, meta[property='og:title']")?.let {
             if (it.tagName() == "meta") it.attr("content") else it.text()
@@ -89,10 +89,10 @@ class FullHDFilmizlesene : MainAPI() {
             addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
-        }
+        }.withMetadata(document)
     }
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
@@ -124,10 +124,10 @@ class FullHDFilmizlesene : MainAPI() {
                             callback(
                                 ExtractorLink(
                                     source = name,
-                                    name = "$name RapidVid 1080p",
+                                    name = "$name RapidVid",
                                     url = m3u8Url,
                                     referer = decodedEmbedUrl,
-                                    quality = Qualities.P1080.value,
+                                    quality = Qualities.Unknown.value,
                                     type = ExtractorLinkType.M3U8,
                                     headers = mapOf(
                                         "Referer" to "https://rapidvid.org/",
@@ -145,6 +145,8 @@ class FullHDFilmizlesene : MainAPI() {
                     }
                 }
             } catch (e: Exception) {
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
                 // Continue to next alternative
             }
         }

@@ -3,7 +3,7 @@ package com.turk
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
-class BelgeselX : MainAPI() {
+class BelgeselX : AdaptiveProvider() {
     override var mainUrl = "https://belgeselx.com"
     override var name = "BelgeselX"
     override val hasMainPage = true
@@ -17,8 +17,8 @@ class BelgeselX : MainAPI() {
         "$mainUrl/haftanin-trendleri" to "Haftanın Trendleri"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get(request.data).document
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
+        val document = app.get(request.data).document.requireContent(name)
         val items = mutableListOf<SearchResponse>()
 
         document.select("a[href*='/belgesel/']").forEach { a ->
@@ -38,7 +38,7 @@ class BelgeselX : MainAPI() {
         return newHomePageResponse(request.name, items.distinctBy { it.url })
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
         val qLower = query.lowercase().trim()
         val pagesToScan = listOf(
             "$mainUrl/son-eklenenler",
@@ -49,7 +49,7 @@ class BelgeselX : MainAPI() {
 
         for (pageUrl in pagesToScan) {
             try {
-                val document = app.get(pageUrl).document
+                val document = app.get(pageUrl).document.requireContent(name)
                 document.select("a[href*='/belgesel/']").forEach { a ->
                     val href = fixUrlNull(a.attr("href")) ?: return@forEach
                     if (href.endsWith("/belgesel/") || href.endsWith("/belgesel")) return@forEach
@@ -65,15 +65,16 @@ class BelgeselX : MainAPI() {
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
             }
         }
 
         return results.distinctBy { it.url }
     }
 
-    override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
+    override suspend fun loadProvider(url: String): LoadResponse {
+        val document = app.get(url).document.requireContent(name)
         val title = document.selectFirst("h1, meta[property='og:title']")?.let {
             if (it.tagName() == "meta") it.attr("content") else it.text()
         }?.replace("belgeselx.com", "", ignoreCase = true)?.replace("izle", "", ignoreCase = true)?.trim()
@@ -113,7 +114,7 @@ class BelgeselX : MainAPI() {
             return newTvSeriesLoadResponse(title, url, TvType.Documentary, episodes.distinctBy { it.data }) {
                 addPoster(poster, mainUrl)
                 this.plot = description
-            }
+            }.withMetadata(document)
         }
 
         // Single documentary / movie
@@ -121,8 +122,12 @@ class BelgeselX : MainAPI() {
         return newMovieLoadResponse(title, url, TvType.Documentary, defaultEpData) {
             addPoster(poster, mainUrl)
             this.plot = description
-        }
+        }.withMetadata(document)
     }
+
+    override fun fallbackPage(data: String): String? =
+        resolveHttpUrl(data.split(",", limit = 5).getOrNull(4))
+            ?.takeIf { httpOrigin(it) == httpOrigin(mainUrl) }
 
     private val srcMap = mapOf(
         "0" to "new5",
@@ -132,17 +137,25 @@ class BelgeselX : MainAPI() {
         "4" to "new3"
     )
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val parts = data.split(",")
+        val parts = data.split(",", limit = 5)
         if (parts.size < 5) return false
         val epId = parts[0]
         val icList = listOf(parts[1], parts[2], parts[3])
         val pageUrl = parts[4]
+        if (epId == "default") {
+            var emitted = false
+            HtmlMediaResolver(name).resolve(pageUrl, "$mainUrl/", subtitleCallback, callback = { link ->
+                emitted = true
+                callback(link)
+            })
+            return emitted
+        }
         var foundAny = false
 
         icList.forEachIndexed { idx, ic ->
@@ -153,7 +166,7 @@ class BelgeselX : MainAPI() {
                 val respHtml = app.get(videoDataUrl, referer = pageUrl).text
                 val iframes = Regex("<iframe[^>]+src=[\"']([^\"']+)[\"']").findAll(respHtml).map { it.groupValues[1] }
                 for (iframeSrc in iframes) {
-                    val resolved = fixUrl(iframeSrc)
+                    val resolved = resolveHttpUrl(iframeSrc, videoDataUrl) ?: continue
                     loadExtractor(resolved, videoDataUrl, subtitleCallback, callback)
                     foundAny = true
                 }
@@ -174,7 +187,8 @@ class BelgeselX : MainAPI() {
                     foundAny = true
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
             }
         }
 

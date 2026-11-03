@@ -5,9 +5,14 @@ on:
     - cron: '0 */12 * * *'
   workflow_dispatch:
 
+concurrency:
+  group: provider-domain-update
+  cancel-in-progress: false
+
 jobs:
   check-domains:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
 
@@ -23,9 +28,14 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Test domain updater
+        run: python3 -m unittest discover -s tests
+
       - name: Check and Update Domains
+        id: domains
+        continue-on-error: true
         run: |
-          python3 scripts/update_domains.py
+          python3 scripts/update_domains.py --apply
 
       - name: Commit and Push if changed
         id: commit_check
@@ -34,7 +44,7 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if [ -n "$(git status --porcelain)" ]; then
             echo "Domain changes detected. Committing and pushing..."
-            git add .
+            git add domains.json TurkProviders/src TurkProviders/build.gradle.kts
             git commit -m "[Auto-Updater] Update rotating provider domains"
             git push origin main
             echo "changed=true" >> $GITHUB_OUTPUT
@@ -83,3 +93,9 @@ jobs:
           curl -s "https://purge.jsdelivr.net/gh/mrkstevn-ui/cs-mrk@builds/plugins.json" || true
           curl -s "https://purge.jsdelivr.net/gh/mrkstevn-ui/cs-mrk@builds/repo.json" || true
           curl -s "https://purge.jsdelivr.net/gh/mrkstevn-ui/cs-mrk@main/repo.json" || true
+
+      - name: Report unverified providers
+        if: always() && steps.domains.outcome == 'failure'
+        run: |
+          echo "Some provider domains could not be verified. See domain check logs; verified updates were processed."
+          exit 1

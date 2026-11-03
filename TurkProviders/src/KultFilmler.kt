@@ -6,7 +6,7 @@ import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
-class KultFilmler : MainAPI() {
+class KultFilmler : AdaptiveProvider() {
     override var mainUrl = "https://kultfilmler.org"
     override var name = "KültFilmler"
     override val hasMainPage = true
@@ -19,9 +19,9 @@ class KultFilmler : MainAPI() {
         "$mainUrl/dizi-arsivi/page/" to "Son Eklenen Diziler"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
         val url = if (page <= 1) request.data else "${request.data}$page/"
-        val document = app.get(url).document
+        val document = app.get(url).document.requireContent(name)
         val items = document.select("a.mcard, .movie-box, .poster a").mapNotNull { card ->
             toSearchResult(card)
         }.distinctBy { it.url }
@@ -29,7 +29,7 @@ class KultFilmler : MainAPI() {
     }
 
     private fun toSearchResult(card: Element): SearchResponse? {
-        val href = fixUrlNull(card.attr("href")) ?: return null
+        val href = resolveHttpUrl(if (card.tagName() == "a") card.attr("href") else card.selectFirst("a[href]")?.attr("href"), mainUrl) ?: return null
         val img = card.selectFirst("img")
         val title = img?.attr("alt")?.ifBlank { null }
             ?: card.selectFirst(".title, h2, h3")?.text()?.ifBlank { null }
@@ -49,17 +49,17 @@ class KultFilmler : MainAPI() {
         }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val searchUrl = "$mainUrl/?s=${query.replace(" ", "+")}"
-        val document = app.get(searchUrl).document.cleanNoise()
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
+        val searchUrl = "$mainUrl/?s=${encodeQuery(query)}"
+        val document = app.get(searchUrl).document.requireContent(name).cleanNoise()
         val container = document.selectFirst(".search-results, .site-main, #main, #content, .content-area, .items, main") ?: document
         return container.select("a.mcard, .movie-box, .poster a").mapNotNull { card ->
             toSearchResult(card)
         }.filter { it.isMatch(query) }.distinctBy { it.url }
     }
 
-    override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
+    override suspend fun loadProvider(url: String): LoadResponse {
+        val document = app.get(url).document.requireContent(name)
         val title = document.selectFirst("h1, .single-title, meta[property='og:title']")?.let {
             if (it.tagName() == "meta") it.attr("content") else it.text()
         }?.replace("izle", "", ignoreCase = true)?.trim() ?: "Bilinmeyen Başlık"
@@ -91,7 +91,7 @@ class KultFilmler : MainAPI() {
                 this.plot = description
                 this.year = year
                 this.tags = tags
-            }
+            }.withMetadata(document)
         }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
@@ -99,7 +99,7 @@ class KultFilmler : MainAPI() {
             this.plot = description
             this.year = year
             this.tags = tags
-        }
+        }.withMetadata(document)
     }
 
     data class KfSrcItem(
@@ -113,13 +113,13 @@ class KultFilmler : MainAPI() {
         @JsonProperty("videoSource") val videoSource: String? = null
     )
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val document = app.get(data).document
+        val document = app.get(data).document.requireContent(name)
         val srcDataScript = document.selectFirst("script#kf-srcdata")?.data()
         var foundAny = false
 
@@ -167,7 +167,8 @@ class KultFilmler : MainAPI() {
                                     foundAny = true
                                 }
                             } catch (e: Exception) {
-                                e.printStackTrace()
+                                if (e is java.util.concurrent.CancellationException) throw e
+                                reportStage("adapter", e)
                             }
                         }
                     } else {
@@ -176,7 +177,8 @@ class KultFilmler : MainAPI() {
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
             }
         }
 

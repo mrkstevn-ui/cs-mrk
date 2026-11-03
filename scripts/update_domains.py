@@ -1,181 +1,193 @@
 #!/usr/bin/env python3
-"""
-Automated Provider Domain Updater Bot
-Checks streaming provider domains for redirects, updates Kotlin sources and increments plugin versions.
-"""
-
-import os
+"""Verify configured HTTPS domains; apply source updates only with --apply."""
+import argparse
+import ipaddress
+import json
 import re
 import ssl
-import json
-import urllib.request
 import urllib.parse
-from typing import Optional, Tuple
+import urllib.request
+from pathlib import Path
 
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-
+USER_AGENT = 'Mozilla/5.0 CloudstreamDomainCheck/1.0'
 SSL_CTX = ssl.create_default_context()
-SSL_CTX.check_hostname = False
-SSL_CTX.verify_mode = ssl.CERT_NONE
+MAIN_URL = re.compile(r'(override\s+var\s+mainUrl\s*=\s*)"[^"]+"')
+MAX_BODY = 2 * 1024 * 1024
 
-def test_url(url: str, keyword: str, timeout: int = 8) -> Tuple[bool, Optional[str]]:
-    """Tests a URL, follows redirects and verifies the page content."""
+
+def normalize_origin(url):
+    parsed = urllib.parse.urlsplit(url)
+    host = parsed.hostname or ''
+    if (parsed.scheme != 'https' or parsed.username is not None or parsed.password is not None
+            or parsed.port not in (None, 443) or parsed.path not in ('', '/')
+            or parsed.query or parsed.fragment or not re.fullmatch(r'[a-zA-Z0-9.-]+', host)
+            or '.' not in host or host.endswith('.') or any(not part or part.startswith('-') or part.endswith('-') for part in host.split('.'))):
+        raise ValueError(f'Invalid HTTPS origin: {url}')
     try:
-        req = urllib.request.Request(
-            url,
-            headers={
-                "User-Agent": USER_AGENT,
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7"
-            }
-        )
-        with urllib.request.urlopen(req, context=SSL_CTX, timeout=timeout) as resp:
-            final_url = resp.url.rstrip("/")
-            body = resp.read().decode("utf-8", errors="replace").lower()
-            
-            # Check if keyword is in page title or content
-            if keyword.lower() in body:
-                parsed = urllib.parse.urlparse(final_url)
-                normalized_root = f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
-                return True, normalized_root
-            return False, None
-    except Exception as e:
+        ipaddress.ip_address(host)
+    except ValueError:
+        pass
+    else:
+        raise ValueError('IP addresses are not provider domains')
+    if host.endswith(('.localhost', '.local', '.internal')):
+        raise ValueError('Local domains are not allowed')
+    return 'https://' + host.lower()
+
+
+class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def __init__(self, allowed_hosts):
+        super().__init__()
+        self.allowed_hosts = allowed_hosts
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        parsed = urllib.parse.urlsplit(newurl)
+        origin = normalize_origin(urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, '', '', '')))
+        if urllib.parse.urlsplit(origin).hostname not in self.allowed_hosts:
+            raise ValueError(f'Unapproved redirect domain: {origin}; add it to mirrors after review')
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def test_url(url, keyword, timeout=8, allowed_hosts=None):
+    """Verify TLS, redirect destination and a non-challenge HTML page."""
+    try:
+        origin = normalize_origin(url)
+        hosts = allowed_hosts or {urllib.parse.urlsplit(origin).hostname}
+        opener = urllib.request.build_opener(
+            urllib.request.HTTPSHandler(context=SSL_CTX), SafeRedirectHandler(hosts))
+        req = urllib.request.Request(origin, headers={'User-Agent': USER_AGENT, 'Accept': 'text/html'})
+        with opener.open(req, timeout=timeout) as resp:
+            if resp.status != 200 or 'text/html' not in resp.headers.get('Content-Type', '').lower():
+                return False, None
+            raw = resp.read(MAX_BODY + 1)
+            if len(raw) > MAX_BODY:
+                return False, None
+            body = raw.decode('utf-8', errors='replace').lower()
+            if not keyword.strip() or any(marker in body for marker in (
+                    'cf-chl-', 'just a moment', 'verify you are human', 'domain is for sale', 'sedoparking')):
+                return False, None
+            title = re.search(r'<title\b[^>]*>(.*?)</title>', body, re.S)
+            # A mention in an advertisement or a link is not site identity.
+            if not title or keyword.casefold() not in title.group(1).casefold():
+                return False, None
+            final = urllib.parse.urlsplit(resp.url)
+            if final.hostname not in hosts:
+                return False, None
+            return True, normalize_origin(urllib.parse.urlunsplit((final.scheme, final.netloc, '', '', '')))
+    except Exception as exc:
+        print(f'  [CHECK FAILED] {url}: {type(exc).__name__}: {exc}', flush=True)
         return False, None
 
-def check_number_increment(base_url: str, keyword: str) -> Optional[str]:
-    """Tests domain number increments like dizipal1591 -> dizipal1592."""
-    match = re.search(r"(\d+)", base_url)
-    if not match:
-        return None
-    num_str = match.group(1)
-    base_num = int(num_str)
-    
-    # Try next 10 numbers
-    for offset in range(1, 11):
-        test_num = base_num + offset
-        candidate = base_url.replace(num_str, str(test_num), 1)
-        ok, verified = test_url(candidate, keyword)
-        if ok and verified:
-            return verified
-    return None
 
-def update_kotlin_file(file_path: str, new_url: str) -> bool:
-    if not os.path.exists(file_path):
+def candidates(cfg):
+    urls = [cfg['current_url'], *cfg.get('mirrors', [])]
+    if cfg.get('strategy') == 'numeric_increment':
+        pattern = cfg.get('pattern', '')
+        if pattern.count('{num}') != 1:
+            raise ValueError('numeric_increment requires one {num} placeholder')
+        match = re.fullmatch(re.escape(pattern).replace(r'\{num\}', r'(\d+)'), cfg['current_url'])
+        if not match:
+            raise ValueError('current_url does not match numeric pattern')
+        urls += [pattern.format(num=int(match[1]) + offset) for offset in range(1, 11)]
+    return list(dict.fromkeys(normalize_origin(url) for url in urls))
+
+
+def update_kotlin_file(file_path, new_url, api_url=None):
+    new_url = normalize_origin(new_url)
+    path = Path(file_path)
+    content = path.read_text(encoding='utf-8')
+    if len(MAIN_URL.findall(content)) != 1:
+        raise ValueError(f'{path}: expected exactly one mainUrl declaration')
+    updated = MAIN_URL.sub(lambda m: m[1] + json.dumps(new_url), content)
+    if api_url is not None:
+        api_url = normalize_origin(api_url)
+        api_pattern = re.compile(r'(override\s+var\s+apiUrl\s*=\s*)"[^"]+"')
+        if len(api_pattern.findall(content)) != 1:
+            raise ValueError(f'{path}: expected exactly one apiUrl declaration')
+        updated = api_pattern.sub(lambda m: m[1] + json.dumps(api_url), updated)
+    if updated == content:
         return False
-    with open(file_path, "r", encoding="utf-8") as f:
-        content = f.read()
+    path.write_text(updated, encoding='utf-8')
+    return True
 
-    new_content = re.sub(
-        r'override\s+var\s+mainUrl\s*=\s*"[^"]+"',
-        f'override var mainUrl = "{new_url}"',
-        content
-    )
-    if new_content != content:
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(new_content)
-        return True
-    return False
 
-def bump_gradle_version(gradle_path: str) -> Optional[int]:
-    if not os.path.exists(gradle_path):
-        return None
-    with open(gradle_path, "r", encoding="utf-8") as f:
-        content = f.read()
+def bump_gradle_version(gradle_path):
+    path = Path(gradle_path)
+    content = path.read_text(encoding='utf-8')
+    pattern = re.compile(r'(?m)^version\s*=\s*(\d+)\s*$')
+    matches = list(pattern.finditer(content))
+    if len(matches) != 1:
+        raise ValueError(f'{path}: expected exactly one plugin version')
+    version = int(matches[0][1]) + 1
+    path.write_text(pattern.sub(f'version = {version}\n', content), encoding='utf-8')
+    return version
 
-    match = re.search(r'version\s*=\s*(\d+)', content)
-    if not match:
-        return None
-    cur_ver = int(match.group(1))
-    new_ver = cur_ver + 1
-    new_content = re.sub(
-        r'version\s*=\s*\d+',
-        f'version = {new_ver}',
-        content
-    )
-    with open(gradle_path, "w", encoding="utf-8") as f:
-        f.write(new_content)
-    return new_ver
+
+def run(root, apply=False):
+    config_path = root / 'domains.json'
+    config = json.loads(config_path.read_text(encoding='utf-8'))
+    # Validate every source before allowing any mutations.
+    for name, cfg in config.items():
+        candidates(cfg)
+        for key in ('file', 'gradle'):
+            path = (root / cfg[key]).resolve()
+            if not path.is_relative_to(root.resolve()) or not path.is_file():
+                raise ValueError(f'{name}: invalid {key} path')
+        if len(MAIN_URL.findall((root / cfg['file']).read_text(encoding='utf-8'))) != 1:
+            raise ValueError(f'{name}: missing or ambiguous mainUrl')
+        if cfg.get('api_url'):
+            normalize_origin(cfg['api_url'])
+            source = (root / cfg['file']).read_text(encoding='utf-8')
+            if len(re.findall(r'override\s+var\s+apiUrl\s*=\s*"[^"]+"', source)) != 1:
+                raise ValueError(f'{name}: missing or ambiguous apiUrl')
+        gradle_source = (root / cfg['gradle']).read_text(encoding='utf-8')
+        if len(re.findall(r'(?m)^version\s*=\s*\d+\s*$', gradle_source)) != 1:
+            raise ValueError(f'{name}: missing or ambiguous plugin version')
+        if not cfg.get('verification_keyword', '').strip():
+            raise ValueError(f'{name}: missing verification keyword')
+    changed, failed, versions = [], [], set()
+    for name, cfg in config.items():
+        print(f'[{name}] Checking {cfg["current_url"]}', flush=True)
+        urls = candidates(cfg)
+        hosts = {urllib.parse.urlsplit(url).hostname for url in urls}
+        active = None
+        for url in urls:
+            ok, verified = test_url(url, cfg['verification_keyword'], allowed_hosts=hosts)
+            if ok:
+                active = verified
+                break
+        if active is None:
+            failed.append(name)
+            print('  [UNVERIFIED] No verified domain; configuration preserved.', flush=True)
+            continue
+        source = (root / cfg['file']).read_text(encoding='utf-8')
+        source_url = re.search(r'override\s+var\s+mainUrl\s*=\s*"([^"]+)"', source)[1]
+        source_api = re.search(r'override\s+var\s+apiUrl\s*=\s*"([^"]+)"', source)
+        api_changed = cfg.get('api_url') is not None and source_api is not None and source_api[1] != normalize_origin(cfg['api_url'])
+        if active != cfg['current_url'] or active != source_url or api_changed:
+            changed.append(name)
+            print(f'  [UPDATE] {source_url} -> {active}' + ('' if apply else ' (dry run)'), flush=True)
+            if apply:
+                if update_kotlin_file(root / cfg['file'], active, cfg.get('api_url')):
+                    versions.add(cfg['gradle'])
+                cfg['current_url'] = active
+        else:
+            print('  [OK] HTTPS domain and source agree.', flush=True)
+    if apply and changed:
+        for gradle in sorted(versions):
+            bump_gradle_version(root / gradle)
+        config_path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+    print(f'Summary: {len(config) - len(failed)} verified, {len(failed)} unverified, {len(changed)} updates.')
+    if failed:
+        print('Unverified: ' + ', '.join(failed))
+    return bool(failed)
+
 
 def main():
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    config_path = os.path.join(root_dir, "domains.json")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--apply', action='store_true', help='Write verified changes (default: read-only)')
+    args = parser.parse_args()
+    return run(Path(__file__).resolve().parents[1], args.apply)
 
-    if not os.path.exists(config_path):
-        print(f"Error: {config_path} not found.")
-        return
 
-    with open(config_path, "r", encoding="utf-8") as f:
-        domains_config = json.load(f)
-
-    updated_providers = []
-
-    print("========================================")
-    print("   Checking Cloudstream TR Providers    ")
-    print("========================================\n")
-
-    for name, cfg in domains_config.items():
-        cur_url = cfg.get("current_url")
-        keyword = cfg.get("verification_keyword", "")
-        file_path = os.path.join(root_dir, cfg.get("file", ""))
-        gradle_path = os.path.join(root_dir, cfg.get("gradle", ""))
-        mirrors = cfg.get("mirrors", [])
-
-        print(f"[{name}] Checking {cur_url}...")
-
-        is_alive, verified_url = test_url(cur_url, keyword)
-        active_url = verified_url if (is_alive and verified_url) else None
-
-        # If current URL failed or redirected, check mirrors / increments
-        if not active_url:
-            print(f"  [!] Current URL down or changed. Checking alternatives...")
-            
-            # Check number increment if applicable
-            increment_candidate = check_number_increment(cur_url, keyword)
-            if increment_candidate:
-                active_url = increment_candidate
-                print(f"  [+] Found working increment domain: {active_url}")
-            
-            # Check mirrors
-            if not active_url:
-                for mirror in mirrors:
-                    if mirror == cur_url:
-                        continue
-                    m_ok, m_verified = test_url(mirror, keyword)
-                    if m_ok and m_verified:
-                        active_url = m_verified
-                        print(f"  [+] Found working mirror: {active_url}")
-                        break
-
-        if active_url:
-            # Check if domain actually changed
-            if active_url != cur_url:
-                print(f"  [*] DOMAIN UPDATE DETECTED: {cur_url} -> {active_url}")
-                kt_updated = update_kotlin_file(file_path, active_url)
-                new_ver = bump_gradle_version(gradle_path)
-                cfg["current_url"] = active_url
-                updated_providers.append({
-                    "provider": name,
-                    "old_url": cur_url,
-                    "new_url": active_url,
-                    "new_version": new_ver
-                })
-            else:
-                print(f"  [OK] Domain is active and up to date.")
-        else:
-            print(f"  [WARN] Could not find any active domain for {name}!")
-
-    if updated_providers:
-        # Save updated domains.json
-        with open(config_path, "w", encoding="utf-8") as f:
-            json.dump(domains_config, f, indent=2, ensure_ascii=False)
-
-        print("\n========================================")
-        print("SUMMARY OF UPDATES:")
-        for up in updated_providers:
-            print(f" - {up['provider']}: {up['old_url']} -> {up['new_url']} (Version: {up['new_version']})")
-        print("========================================")
-    else:
-        print("\nAll provider domains are healthy and current. No changes needed.")
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    raise SystemExit(main())

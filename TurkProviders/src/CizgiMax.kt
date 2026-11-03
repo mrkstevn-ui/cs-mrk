@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
-class CizgiMax : MainAPI() {
+class CizgiMax : AdaptiveProvider() {
     override var mainUrl = "https://cizgimax.online"
     override var name = "ÇizgiMax"
     override val hasMainPage = true
@@ -19,8 +19,8 @@ class CizgiMax : MainAPI() {
         "$mainUrl/diziler/anime/" to "Animeler"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get(request.data).document
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
+        val document = app.get(request.data).document.requireContent(name)
         val items = mutableListOf<SearchResponse>()
 
         document.select(".poster-card, .video-card, a[href*='-izle/']").forEach { el ->
@@ -57,8 +57,8 @@ class CizgiMax : MainAPI() {
         @JsonProperty("animes") val animes: List<SuggestAnimeItem>? = null
     )
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val searchUrl = "$mainUrl/api/search/suggest/?q=${query.trim().replace(" ", "+")}"
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
+        val searchUrl = "$mainUrl/api/search/suggest/?q=${encodeQuery(query)}"
         return try {
             val json = app.get(
                 searchUrl,
@@ -81,12 +81,14 @@ class CizgiMax : MainAPI() {
                 }
             } ?: emptyList()
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             emptyList()
         }
     }
 
-    override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
+    override suspend fun loadProvider(url: String): LoadResponse {
+        val document = app.get(url).document.requireContent(name)
         val isMovie = url.contains("/film/")
         val isEpisodePage = url.contains("-bolum-izle")
 
@@ -94,7 +96,7 @@ class CizgiMax : MainAPI() {
             // Find parent show link if present
             val parentShow = document.selectFirst("a[href*='/diziler/']")?.attr("href")
             if (!parentShow.isNullOrBlank()) {
-                val showDoc = app.get(fixUrl(parentShow)).document
+                val showDoc = app.get(fixUrl(parentShow)).document.requireContent(name)
                 return parseShowPage(showDoc, fixUrl(parentShow))
             }
         }
@@ -134,14 +136,14 @@ class CizgiMax : MainAPI() {
                 addPoster(poster, mainUrl)
                 this.plot = description
                 this.year = year
-            }
+            }.withMetadata(document)
         }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
             addPoster(poster, mainUrl)
             this.plot = description
             this.year = year
-        }
+        }.withMetadata(document)
     }
 
     data class ServerItem(
@@ -166,13 +168,13 @@ class CizgiMax : MainAPI() {
         @JsonProperty("urls") val urls: List<TauVideoUrl>? = null
     )
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val document = app.get(data).document
+        val document = app.get(data).document.requireContent(name)
         val html = document.html()
         var foundAny = false
 
@@ -206,11 +208,11 @@ class CizgiMax : MainAPI() {
                                 val tauData = AppUtils.parseJson<TauVideoData>(tauJson)
                                 tauData.urls?.forEach { u ->
                                     val streamUrl = u.url ?: return@forEach
-                                    val quality = u.label?.filter { it.isDigit() }?.toIntOrNull() ?: Qualities.P1080.value
+                                    val quality = u.label?.filter { it.isDigit() }?.toIntOrNull() ?: Qualities.Unknown.value
                                     callback.invoke(
                                         newExtractorLink(
                                             source = "ÇizgiMax",
-                                            name = "ÇizgiMax [${u.label ?: "1080p"}] (${s.label ?: "Ana"})",
+                                            name = "ÇizgiMax [${u.label ?: "Bilinmeyen"}] (${s.label ?: "Ana"})",
                                             url = streamUrl,
                                             type = ExtractorLinkType.VIDEO
                                         ) {
@@ -222,7 +224,8 @@ class CizgiMax : MainAPI() {
                                 }
                             }
                         } catch (e: Exception) {
-                            e.printStackTrace()
+                            if (e is java.util.concurrent.CancellationException) throw e
+                            reportStage("adapter", e)
                         }
                     }
 
@@ -232,7 +235,7 @@ class CizgiMax : MainAPI() {
                         val resolvedIframe = fixUrl(iframeSrc)
                         try {
                             if (resolvedIframe.contains("/oynat/")) {
-                                val oynatDoc = app.get(resolvedIframe, headers = mapOf("Referer" to data)).document
+                                val oynatDoc = app.get(resolvedIframe, headers = mapOf("Referer" to data)).document.requireContent(name)
                                 oynatDoc.select("iframe").forEach { innerIframe ->
                                     val innerSrc = fixUrlNull(innerIframe.attr("src")) ?: return@forEach
                                     loadExtractor(innerSrc, resolvedIframe, subtitleCallback, callback)
@@ -243,12 +246,14 @@ class CizgiMax : MainAPI() {
                                 foundAny = true
                             }
                         } catch (e: Exception) {
-                            e.printStackTrace()
+                            if (e is java.util.concurrent.CancellationException) throw e
+                            reportStage("adapter", e)
                         }
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
             }
         }
 

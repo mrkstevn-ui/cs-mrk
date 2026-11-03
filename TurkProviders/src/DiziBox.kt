@@ -6,7 +6,7 @@ import com.lagradost.cloudstream3.network.WebViewResolver
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
 
-class DiziBox : MainAPI() {
+class DiziBox : AdaptiveProvider() {
     override var mainUrl = "https://www.dizibox.live"
     override var name = "DiziBOX"
     override val hasMainPage = true
@@ -18,11 +18,11 @@ class DiziBox : MainAPI() {
         "$mainUrl/" to "Son Eklenen Bölümler"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get(
             request.data,
             headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
-        ).document
+        ).document.requireContent(name)
         val items = mutableListOf<SearchResponse>()
 
         // Episode links on homepage
@@ -51,8 +51,8 @@ class DiziBox : MainAPI() {
         @JsonProperty("results") val results: List<DwlsResult>? = null
     )
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val ajaxUrl = "$mainUrl/wp-admin/admin-ajax.php?action=dwls_search&query=${query.replace(" ", "+")}"
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
+        val ajaxUrl = "$mainUrl/wp-admin/admin-ajax.php?action=dwls_search&query=${encodeQuery(query)}"
         return try {
             val resp = app.get(
                 ajaxUrl,
@@ -72,15 +72,17 @@ class DiziBox : MainAPI() {
                 }
             } ?: emptyList()
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             emptyList()
         }
     }
 
-    override suspend fun load(url: String): LoadResponse {
+    override suspend fun loadProvider(url: String): LoadResponse {
         val document = app.get(
             url,
             headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
-        ).document
+        ).document.requireContent(name)
 
         // If the URL is an episode, check if there is a parent series link
         val parentSeriesUrl = document.selectFirst("a[href*='/diziler/']")?.attr("href")
@@ -90,7 +92,7 @@ class DiziBox : MainAPI() {
             val showDoc = app.get(
                 fixUrl(parentSeriesUrl),
                 headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
-            ).document
+            ).document.requireContent(name)
             return parseShowPage(showDoc, fixUrl(parentSeriesUrl))
         }
 
@@ -126,10 +128,10 @@ class DiziBox : MainAPI() {
         return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.distinctBy { it.data }) {
             addPoster(poster, mainUrl)
             this.plot = description
-        }
+        }.withMetadata(document)
     }
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
@@ -138,7 +140,7 @@ class DiziBox : MainAPI() {
         val document = app.get(
             data,
             headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
-        ).document
+        ).document.requireContent(name)
         var foundAny = false
 
         // Extract king.php player
@@ -152,7 +154,7 @@ class DiziBox : MainAPI() {
                         "Referer" to data,
                         "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
                     )
-                ).document
+                ).document.requireContent(name)
 
                 val molySrc = kingDoc.selectFirst("iframe[src*='molystream.org/embed/']")?.attr("src")
                 if (!molySrc.isNullOrBlank()) {
@@ -163,7 +165,7 @@ class DiziBox : MainAPI() {
                         callback.invoke(
                             newExtractorLink(
                                 source = "DiziBOX - MolyStream",
-                                name = "DiziBOX [1080p]",
+                                name = "DiziBOX ",
                                 url = sheilaUrl,
                                 type = ExtractorLinkType.M3U8
                             ) {
@@ -177,7 +179,8 @@ class DiziBox : MainAPI() {
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
             }
         }
 

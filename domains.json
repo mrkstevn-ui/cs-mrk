@@ -203,7 +203,8 @@
       "https://patronkale1.cfd",
       "https://inattv1327.xyz"
     ],
-    "verification_keyword": "patron"
+    "verification_keyword": "patron",
+    "api_url": "https://patronsports2.cfd"
   },
   "Patronspor": {
     "file": "TurkProviders/src/Patronspor.kt",
@@ -215,7 +216,8 @@
       "https://patronkale2.cfd",
       "https://patronkale1.cfd"
     ],
-    "verification_keyword": "patron"
+    "verification_keyword": "patron",
+    "api_url": "https://patronsports2.cfd"
   },
   "SetFilmIzle": {
     "file": "TurkProviders/src/SetFilmIzle.kt",

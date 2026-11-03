@@ -5,7 +5,7 @@ import com.lagradost.cloudstream3.utils.*
 import org.json.JSONObject
 import org.jsoup.Jsoup
 
-class SezonlukDizi : MainAPI() {
+class SezonlukDizi : AdaptiveProvider() {
     override var mainUrl = "https://sezonlukdizi.cc"
     override var name = "SezonlukDizi"
     override val hasMainPage = true
@@ -21,7 +21,7 @@ class SezonlukDizi : MainAPI() {
         "$mainUrl/diziler.asp?tur=bilimkurgu&s=" to "Bilim Kurgu Dizileri"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
         val url = "${request.data}$page"
         val res = app.get(
             url,
@@ -30,7 +30,7 @@ class SezonlukDizi : MainAPI() {
                 "Referer" to "$mainUrl/"
             )
         ).text
-        val doc = Jsoup.parse(res)
+        val doc = Jsoup.parse(res, url).requireContent(name)
         val items = mutableListOf<SearchResponse>()
 
         for (a in doc.select("a.column[href^='/diziler/']")) {
@@ -49,7 +49,7 @@ class SezonlukDizi : MainAPI() {
         return newHomePageResponse(request.name, items)
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
         val items = mutableListOf<SearchResponse>()
         try {
             val resp = app.post(
@@ -64,6 +64,8 @@ class SezonlukDizi : MainAPI() {
             val res = try {
                 String(resp.body.bytes(), java.nio.charset.Charset.forName("ISO-8859-9"))
             } catch (e: Exception) {
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
                 resp.text
             }
 
@@ -83,16 +85,18 @@ class SezonlukDizi : MainAPI() {
                 })
             }
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             // Fallback: search via GET diziler.asp?q=
             try {
                 val res = app.get(
-                    "$mainUrl/diziler.asp?q=${query.trim()}",
+                    "$mainUrl/diziler.asp?q=${encodeQuery(query)}",
                     headers = mapOf(
                         "User-Agent" to TURK_USER_AGENT,
                         "Referer" to "$mainUrl/"
                     )
                 ).text
-                val doc = Jsoup.parse(res).cleanNoise()
+                val doc = Jsoup.parse(res, "$mainUrl/diziler.asp").requireContent(name).cleanNoise()
                 for (a in doc.select("a.column[href^='/diziler/']")) {
                     val href = fixUrl(a.attr("href"))
                     val desc = a.selectFirst(".description")?.text()?.trim()
@@ -107,13 +111,15 @@ class SezonlukDizi : MainAPI() {
                     })
                 }
             } catch (e2: Exception) {
+                if (e2 is java.util.concurrent.CancellationException) throw e2
+                reportStage("adapter", e2)
                 // Ignore
             }
         }
         return items
     }
 
-    override suspend fun load(url: String): LoadResponse {
+    override suspend fun loadProvider(url: String): LoadResponse {
         val res = app.get(
             url,
             headers = mapOf(
@@ -121,7 +127,7 @@ class SezonlukDizi : MainAPI() {
                 "Referer" to "$mainUrl/"
             )
         ).text
-        val doc = Jsoup.parse(res)
+        val doc = Jsoup.parse(res, url).requireContent(name)
 
         val title = doc.selectFirst("h1")?.text()?.replace(" izle", "")?.trim() ?: "Bilinmeyen Dizi"
         val poster = doc.selectFirst("meta[property='og:image']")?.attr("content")
@@ -166,6 +172,8 @@ class SezonlukDizi : MainAPI() {
                 )
             }
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             // Ignore
         }
 
@@ -190,10 +198,10 @@ class SezonlukDizi : MainAPI() {
         return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.distinctBy { it.data }) {
             addPoster(poster, mainUrl)
             this.plot = plot
-        }
+        }.withMetadata(doc)
     }
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
@@ -264,6 +272,8 @@ class SezonlukDizi : MainAPI() {
                                         foundLinks = true
                                     }
                                 } catch (e: Exception) {
+                                    if (e is java.util.concurrent.CancellationException) throw e
+                                    reportStage("adapter", e)
                                     // Ignore Byse error
                                 }
                             }
@@ -274,17 +284,25 @@ class SezonlukDizi : MainAPI() {
                                     foundLinks = true
                                 }
                             } catch (e: Exception) {
+                                if (e is java.util.concurrent.CancellationException) throw e
+                                reportStage("adapter", e)
                                 // Ignore loadExtractor error
                             }
                         } catch (e: Exception) {
+                            if (e is java.util.concurrent.CancellationException) throw e
+                            reportStage("adapter", e)
                             // Ignore single embed error
                         }
                     }
                 } catch (e: Exception) {
+                    if (e is java.util.concurrent.CancellationException) throw e
+                    reportStage("adapter", e)
                     // Ignore dil error
                 }
             }
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             // Ignore
         }
 

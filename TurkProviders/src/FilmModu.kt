@@ -13,16 +13,16 @@ import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
-class FilmModu : MainAPI() {
+class FilmModu : AdaptiveProvider() {
     override var mainUrl = "https://filmmodu.cc"
     override var name = "FilmModu"
     override val hasMainPage = true
     override var lang = "tr"
     override val supportedTypes = setOf(TvType.Movie)
 
-    private val standardHeaders = mapOf(
+    private val standardHeaders get() = mapOf(
         "User-Agent" to TURK_USER_AGENT,
-        "Referer" to "https://filmmodu.cc/"
+        "Referer" to "$mainUrl/"
     )
 
     override val mainPage = mainPageOf(
@@ -34,7 +34,7 @@ class FilmModu : MainAPI() {
         "filmizle/animasyon-filmleri-izle" to "Animasyon"
     )
 
-    override suspend fun getMainPage(
+    override suspend fun mainPageProvider(
         page: Int,
         request: MainPageRequest
     ): HomePageResponse {
@@ -44,7 +44,7 @@ class FilmModu : MainAPI() {
             if (page <= 1) "$mainUrl/${request.data}" else "$mainUrl/${request.data}/$page"
         }
 
-        val doc = app.get(url, headers = standardHeaders).document
+        val doc = app.get(url, headers = standardHeaders).document.requireContent(name)
         val movies = doc.select("article.movie_box").mapNotNull { toSearchResult(it) }
 
         return newHomePageResponse(
@@ -67,11 +67,11 @@ class FilmModu : MainAPI() {
         }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
+    override suspend fun searchProvider(query: String): List<SearchResponse> {
         val results = mutableListOf<SearchResponse>()
         try {
             // 1. Yeni JSON Arama API'si (/arama/oneri)
-            val homeDoc = app.get(mainUrl, headers = standardHeaders).document
+            val homeDoc = app.get(mainUrl, headers = standardHeaders).document.requireContent(name)
             val csrfToken = homeDoc.selectFirst("meta[name='csrf-token']")?.attr("content").orEmpty()
 
             val response = app.post(
@@ -122,6 +122,8 @@ class FilmModu : MainAPI() {
                 }
             }
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
             // Fallback: Eski HTML arama
             try {
                 val response = app.post(
@@ -148,14 +150,16 @@ class FilmModu : MainAPI() {
                     })
                 }
             } catch (e2: Exception) {
+                if (e2 is java.util.concurrent.CancellationException) throw e2
+                reportStage("adapter", e2)
                 // Ignore
             }
         }
         return results.distinctBy { it.url }
     }
 
-    override suspend fun load(url: String): LoadResponse? {
-        val doc = app.get(url, headers = standardHeaders).document
+    override suspend fun loadProvider(url: String): LoadResponse? {
+        val doc = app.get(url, headers = standardHeaders).document.requireContent(name)
 
         val rawTitle = doc.selectFirst("h1")?.text()
             ?: doc.selectFirst("meta[property=og:title]")?.attr("content")
@@ -180,16 +184,16 @@ class FilmModu : MainAPI() {
             this.plot = plot
             this.year = year
             this.tags = tags
-        }
+        }.withMetadata(doc)
     }
 
-    override suspend fun loadLinks(
+    override suspend fun resolveLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val pageDoc = app.get(data, headers = standardHeaders).document
+        val pageDoc = app.get(data, headers = standardHeaders).document.requireContent(name)
         val pageHtml = pageDoc.html()
         var foundAny = false
 
@@ -233,11 +237,13 @@ class FilmModu : MainAPI() {
                             }
                         }
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        if (e is java.util.concurrent.CancellationException) throw e
+                        reportStage("adapter", e)
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
             }
         }
 
@@ -251,7 +257,8 @@ class FilmModu : MainAPI() {
                 extractAndLoadPlayer(decoded, "Ana Sunucu", subtitleCallback, callback)
                 foundAny = true
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
             }
         }
 
@@ -270,7 +277,8 @@ class FilmModu : MainAPI() {
                 extractAndLoadPlayer(decoded, label, subtitleCallback, callback)
                 foundAny = true
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
             }
         }
 
@@ -339,12 +347,12 @@ class FilmModu : MainAPI() {
                 callback.invoke(
                     newExtractorLink(
                         source = name,
-                        name = "$name ($label - 1080p)",
+                        name = "$name ($label)",
                         url = hlsUrl,
                         type = ExtractorLinkType.M3U8
                     ) {
                         this.referer = "https://vidmixi.com/"
-                        this.quality = Qualities.P1080.value
+                        this.quality = Qualities.Unknown.value
                         this.headers = streamHeaders
                     }
                 )
@@ -364,7 +372,8 @@ class FilmModu : MainAPI() {
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            if (e is java.util.concurrent.CancellationException) throw e
+            reportStage("adapter", e)
         }
     }
 

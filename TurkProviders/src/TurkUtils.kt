@@ -28,16 +28,7 @@ fun fixPosterUrl(rawUrl: String?, baseUrl: String? = null): String? {
     val noFragment = firstUrl.substringBefore("#").trim()
     if (noFragment.isBlank() || noFragment.startsWith("data:")) return null
 
-    return when {
-        noFragment.startsWith("http://") || noFragment.startsWith("https://") -> noFragment
-        noFragment.startsWith("//") -> "https:$noFragment"
-        baseUrl != null -> {
-            val base = baseUrl.trimEnd('/')
-            val path = noFragment.trimStart('/')
-            "$base/$path"
-        }
-        else -> noFragment
-    }
+    return resolveHttpUrl(noFragment, baseUrl)
 }
 
 fun cleanPosterUrl(img: Element?, baseUrl: String? = null): String? {
@@ -110,10 +101,10 @@ fun matchesQuery(text: String?, query: String): Boolean {
     if (t.isBlank()) return false
 
     // 1. Direct or compacted containment
-    if (t.contains(q) || q.contains(t)) return true
+    if (t.contains(q)) return true
     val tCompacted = t.replace(" ", "")
     val qCompacted = q.replace(" ", "")
-    if (tCompacted.contains(qCompacted) || qCompacted.contains(tCompacted)) return true
+    if (tCompacted.contains(qCompacted)) return true
 
     // 2. Token-based check
     val qTokens = q.split(" ").filter { it.isNotBlank() }
@@ -129,7 +120,7 @@ fun matchesQuery(text: String?, query: String): Boolean {
                 (tToken.length >= 4 && sToken.contains(tToken))
             }
         }
-        return matches > 0
+        return matches == significantTokens.size
     }
 
     // For short queries (e.g. "It", "Up", "21")
