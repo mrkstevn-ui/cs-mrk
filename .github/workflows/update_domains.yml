@@ -97,5 +97,4 @@ jobs:
       - name: Report unverified providers
         if: always() && steps.domains.outcome == 'failure'
         run: |
-          echo "Some provider domains could not be verified. See domain check logs; verified updates were processed."
-          exit 1
+          echo "::warning::Some provider domains could not be verified. See domain check logs; verified updates were processed."

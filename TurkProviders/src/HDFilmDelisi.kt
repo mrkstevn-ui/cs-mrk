@@ -8,7 +8,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
 class HDFilmDelisi : AdaptiveProvider() {
-    override var mainUrl = "https://hdfilmdelisi.one"
+    override var mainUrl = "https://hdfilmdelisi1.com"
     override var name = "HDFilmDelisi"
     override val hasMainPage = true
     override var lang = "tr"

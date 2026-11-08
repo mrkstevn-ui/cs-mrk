@@ -160,9 +160,10 @@
   "HDFilmDelisi": {
     "file": "TurkProviders/src/HDFilmDelisi.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://hdfilmdelisi.one",
+    "current_url": "https://hdfilmdelisi1.com",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
+      "https://hdfilmdelisi1.com",
       "https://hdfilmdelisi.one",
       "https://hdfilmdelisi.com",
       "https://hdfilmdelisi.org"
@@ -228,7 +229,7 @@
       "https://www.setfilmizle.ltd",
       "https://setfilmizle.ltd"
     ],
-    "verification_keyword": "setfilm"
+    "verification_keyword": "set film"
   },
   "SezonlukDizi": {
     "file": "TurkProviders/src/SezonlukDizi.kt",
