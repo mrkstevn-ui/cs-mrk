@@ -1,10 +1,10 @@
 [
     {
         "iconUrl": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/main/icon.png",
-        "fileHash": "sha256-bbcf30cf6f6c5a8724465cae1981c81d2622e3166b5aff7774deb5b9ecd456af",
+        "fileHash": "sha256-061170cd170e0aa28d83786377d20457da7201873095e2e004c727750ef362c2",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/mrkstevn-ui/cs-mrk",
-        "fileSize": 237301,
+        "fileSize": 237294,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -16,7 +16,7 @@
             "Anime",
             "Live"
         ],
-        "version": 26,
+        "version": 27,
         "internalName": "TurkProviders",
         "description": "T\u00fcrk\u00e7e Dizi, Film, Anime ve Canl\u0131 TV Sa\u011flay\u0131c\u0131lar\u0131",
         "url": "https://raw.githubusercontent.com/mrkstevn-ui/cs-mrk/builds/TurkProviders.cs3",
