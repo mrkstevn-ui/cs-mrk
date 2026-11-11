@@ -161,7 +161,7 @@ class DiziBox : AdaptiveProvider() {
                     val resolvedMoly = fixUrl(molySrc)
                     val embedId = Regex("embed/([a-zA-Z0-9\\-]+)").find(resolvedMoly)?.groupValues?.get(1)
                     if (embedId != null) {
-                        val sheilaUrl = "https://dbx.molystream.org/embed/sheila/$embedId"
+                        val sheilaUrl = "https://dbx.molystream.org/embed/sheila/$embedId?ext=.m3u8"
                         callback.invoke(
                             newExtractorLink(
                                 source = "DiziBOX - MolyStream",

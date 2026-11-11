@@ -82,10 +82,22 @@ abstract class AdaptiveProvider : MainAPI() {
         val subtitles = Collections.synchronizedSet(mutableSetOf<String>())
         val emit: (ExtractorLink) -> Unit = { link ->
             // Keep original objects and headers: DRM/extractor-specific data and signed URLs survive.
-            if (resolveHttpUrl(link.url) != null && media.add("${link.url}|${link.referer}|${link.headers.toSortedMap()}")) callback(link)
+            val rawUrl = link.url.trim()
+            if (rawUrl.startsWith("http://", ignoreCase = true) ||
+                rawUrl.startsWith("https://", ignoreCase = true) ||
+                rawUrl.startsWith("//")) {
+                val safeHeaders = try { (link.headers ?: emptyMap()).toSortedMap().toString() } catch (_: Exception) { "" }
+                val key = "$rawUrl|${link.referer.orEmpty()}|$safeHeaders"
+                if (media.add(key)) callback(link)
+            }
         }
         val emitSubtitle: (SubtitleFile) -> Unit = { sub ->
-            if (resolveHttpUrl(sub.url) != null && subtitles.add("${sub.lang}|${sub.url}")) subtitleCallback(sub)
+            val rawUrl = sub.url.trim()
+            if (rawUrl.startsWith("http://", ignoreCase = true) ||
+                rawUrl.startsWith("https://", ignoreCase = true) ||
+                rawUrl.startsWith("//")) {
+                if (subtitles.add("${sub.lang}|$rawUrl")) subtitleCallback(sub)
+            }
         }
         try { resolveLinks(data, isCasting, emitSubtitle, emit) }
         catch (e: CancellationException) { throw e }

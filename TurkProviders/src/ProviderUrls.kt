@@ -1,6 +1,7 @@
 package com.turk
 
 import java.net.URI
+import java.net.URL
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -13,7 +14,12 @@ fun resolveHttpUrl(raw: String?, base: String? = null): String? {
     return try {
         val text = raw.trim()
         if (text.any { it.isISOControl() }) return null
-        val uri = if (base.isNullOrBlank()) URI(text) else URI(base).resolve(text)
+        val uri = try {
+            if (base.isNullOrBlank()) URI(text) else URI(base).resolve(text)
+        } catch (_: Exception) {
+            val u = if (base.isNullOrBlank()) URL(text) else URL(URL(base), text)
+            URI(u.protocol, u.userInfo, u.host, u.port, u.path, u.query, u.ref)
+        }
         if (uri.scheme?.lowercase() !in setOf("http", "https") || uri.host.isNullOrBlank() || uri.rawUserInfo != null) null
         else uri.toASCIIString()
     } catch (_: Exception) { null }

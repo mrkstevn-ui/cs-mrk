@@ -6,6 +6,7 @@ import com.lagradost.cloudstream3.network.WebViewResolver
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
+import org.json.JSONObject
 import java.nio.charset.StandardCharsets
 
 class FullHDFilmizlesene : AdaptiveProvider() {
@@ -117,15 +118,69 @@ class FullHDFilmizlesene : AdaptiveProvider() {
 
                 if (decodedEmbedUrl.contains("rapidvid", ignoreCase = true)) {
                     val rapidvidHtml = app.get(decodedEmbedUrl, headers = mapOf("Referer" to "$mainUrl/")).text
-                    val cipherMatch = Regex("""av\(['"]([^'"]+)['"]\)""").find(rapidvidHtml)?.groupValues?.get(1)
+                    val cipherMatch = Regex("""window\._p\w*\s*=\s*['"]([^'"]+)['"]""").find(rapidvidHtml)?.groupValues?.get(1)
+                        ?: Regex("""av\(['"]([^'"]+)['"]\)""").find(rapidvidHtml)?.groupValues?.get(1)
                     if (cipherMatch != null) {
-                        val m3u8Url = deobfuscateRapidvid(cipherMatch)
-                        if (m3u8Url.startsWith("http")) {
+                        val deobfuscated = deobfuscateRapidvid(cipherMatch)
+                        if (deobfuscated.startsWith("{")) {
+                            try {
+                                val dJson = JSONObject(deobfuscated)
+                                val cm = dJson.optString("cm").trim()
+                                if (cm.isNotBlank() && cm.startsWith("http")) {
+                                    callback(
+                                        newExtractorLink(
+                                            source = name,
+                                            name = "$name RapidVid (Ana Akış)",
+                                            url = cm,
+                                            type = ExtractorLinkType.M3U8
+                                        ) {
+                                            this.referer = "https://rapidvid.org/"
+                                            this.quality = Qualities.Unknown.value
+                                            this.headers = mapOf(
+                                                "Referer" to "https://rapidvid.org/",
+                                                "Origin" to "https://rapidvid.org"
+                                            )
+                                        }
+                                    )
+                                    foundLinks = true
+                                }
+                                val tm = dJson.optString("tm").trim()
+                                if (tm.isNotBlank() && tm.startsWith("http")) {
+                                    callback(
+                                        newExtractorLink(
+                                            source = name,
+                                            name = "$name RapidVid (Alternatif)",
+                                            url = tm,
+                                            type = ExtractorLinkType.M3U8
+                                        ) {
+                                            this.referer = "https://rapidvid.org/"
+                                            this.quality = Qualities.Unknown.value
+                                            this.headers = mapOf(
+                                                "Referer" to "https://rapidvid.org/",
+                                                "Origin" to "https://rapidvid.org"
+                                            )
+                                        }
+                                    )
+                                    foundLinks = true
+                                }
+                                val ct = dJson.optJSONArray("ct")
+                                if (ct != null) {
+                                    for (i in 0 until ct.length()) {
+                                        val cap = ct.getJSONObject(i)
+                                        val subFile = cap.optString("file").trim()
+                                        val subLabel = cap.optString("label", "Altyazı").trim()
+                                        if (subFile.startsWith("http")) {
+                                            subtitleCallback(SubtitleFile(subLabel, subFile))
+                                        }
+                                    }
+                                }
+                            } catch (_: Exception) { }
+                        } else if (deobfuscated.startsWith("http")) {
                             callback(
                                 newExtractorLink(
                                     source = name,
                                     name = "$name RapidVid",
-                                    url = m3u8Url,
+                                    url = deobfuscated,
                                     type = ExtractorLinkType.M3U8
                                 ) {
                                     this.referer = decodedEmbedUrl

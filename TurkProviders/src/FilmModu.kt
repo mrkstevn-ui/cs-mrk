@@ -193,8 +193,10 @@ class FilmModu : AdaptiveProvider() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val pageDoc = app.get(data, headers = standardHeaders).document.requireContent(name)
+        val pageRes = app.get(data, headers = standardHeaders)
+        val pageDoc = pageRes.document.requireContent(name)
         val pageHtml = pageDoc.html()
+        val cookies = pageRes.cookies
         var foundAny = false
 
         // 1. Yeni Sistem: #f_player div[data-k] ve /px API'si
@@ -222,6 +224,7 @@ class FilmModu : AdaptiveProvider() {
                                 "Accept" to "application/json",
                                 "Content-Type" to "application/x-www-form-urlencoded"
                             ),
+                            cookies = cookies,
                             data = mapOf("i" to itemId.toString(), "s" to itemS)
                         ).text
 
@@ -313,7 +316,7 @@ class FilmModu : AdaptiveProvider() {
             val html = app.get(embedUrl, referer = "$mainUrl/").text
 
             // bePlayer('HASH', '{"ct":"...","iv":"...","s":"..."}')
-            val bePlayerPattern = Pattern.compile("bePlayer\\s*\\(\\s*['\"]([^'\"]+)['\"]\\s*,\\s*['\"](\\{.+?\\})['\"]\\s*\\)")
+            val bePlayerPattern = Pattern.compile("""bePlayer\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"](\{.+\})['"]\s*\)""", Pattern.DOTALL)
             val matcher = bePlayerPattern.matcher(html)
             if (!matcher.find()) return
 

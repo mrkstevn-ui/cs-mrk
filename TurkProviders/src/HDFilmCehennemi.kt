@@ -188,27 +188,65 @@ class HDFilmCehennemi : AdaptiveProvider() {
                         if (playerUrl.contains("vidload.top/player/") || playerUrl.contains("/player/")) {
                             try {
                                 val pHtml = app.get(playerUrl, headers = mapOf("Referer" to "$mainUrl/")).text
-                                var cleaned = pHtml
-                                repeat(3) {
-                                    cleaned = cleaned.replace("\\\\", "\\").replace("\\/", "/")
-                                }
-                                cleaned = cleaned.replace("\\u0022", "\"").replace("\"", "")
-                                val m3u8Match = Regex("""https?://[^\s,;']+\.m3u8[^\s,;']*""").find(cleaned)?.value
-                                if (m3u8Match != null) {
-                                    callback.invoke(
-                                        newExtractorLink(
-                                            source = name,
-                                            name = "$name - $serviceName",
-                                            url = m3u8Match,
-                                            type = ExtractorLinkType.M3U8
-                                        ) {
-                                            this.headers = mapOf(
-                                                "Referer" to playerUrl,
-                                                "User-Agent" to TURK_USER_AGENT
+                                var extracted = false
+                                val jsonMatch = Regex("""JSON\.parse\(\s*'([^']+)'\s*\)""").find(pHtml)?.groupValues?.get(1)
+                                if (!jsonMatch.isNullOrBlank()) {
+                                    try {
+                                        val cleanJson = jsonMatch.replace("\\u0022", "\"").replace("\\/", "/").replace("\\\\", "\\")
+                                        val obj = JSONObject(cleanJson)
+                                        val streamUrl = obj.optString("file").replace("\\/", "/").trim()
+                                        if (streamUrl.isNotBlank() && streamUrl.startsWith("http")) {
+                                            callback.invoke(
+                                                newExtractorLink(
+                                                    source = name,
+                                                    name = "$name - $serviceName",
+                                                    url = streamUrl,
+                                                    type = ExtractorLinkType.M3U8
+                                                ) {
+                                                    this.headers = mapOf(
+                                                        "Referer" to playerUrl,
+                                                        "User-Agent" to TURK_USER_AGENT
+                                                    )
+                                                }
                                             )
+                                            foundAny = true
+                                            extracted = true
                                         }
-                                    )
-                                    foundAny = true
+                                        val tracks = obj.optJSONArray("tracks")
+                                        if (tracks != null) {
+                                            for (t in 0 until tracks.length()) {
+                                                val track = tracks.getJSONObject(t)
+                                                val subFile = track.optString("file").replace("\\/", "/").trim()
+                                                val subLabel = track.optString("label", "Altyazı")
+                                                if (subFile.startsWith("http")) {
+                                                    subtitleCallback(SubtitleFile(subLabel, subFile))
+                                                }
+                                            }
+                                        }
+                                    } catch (_: Exception) { }
+                                }
+                                if (!extracted) {
+                                    val cleaned = pHtml.replace("\\u0022", "\"")
+                                        .replace(Regex("""\\+/"""), "/")
+                                        .replace("\\", "")
+                                    val m3u8Match = Regex("""https?://[^\s,;'"<>]+\.m3u8(?:\?[^\s,;'"<>]*)?""").find(cleaned)?.value
+                                        ?.substringBefore("\"")?.substringBefore("'")?.substringBefore("\\")
+                                    if (m3u8Match != null) {
+                                        callback.invoke(
+                                            newExtractorLink(
+                                                source = name,
+                                                name = "$name - $serviceName",
+                                                url = m3u8Match,
+                                                type = ExtractorLinkType.M3U8
+                                            ) {
+                                                this.headers = mapOf(
+                                                    "Referer" to playerUrl,
+                                                    "User-Agent" to TURK_USER_AGENT
+                                                )
+                                            }
+                                        )
+                                        foundAny = true
+                                    }
                                 }
                             } catch (e: Exception) {
                                 if (e is java.util.concurrent.CancellationException) throw e
