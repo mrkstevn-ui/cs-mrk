@@ -6,7 +6,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class InatTV : LiveProvider() {
-    override var mainUrl = "https://patronkale2.cfd"
+    override var mainUrl = "https://patronsaha1.cfd"
     override var name = "İnatTV"
     override val hasMainPage = true
     override var lang = "tr"

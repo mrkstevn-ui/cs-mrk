@@ -9,10 +9,14 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-USER_AGENT = 'Mozilla/5.0 CloudstreamDomainCheck/1.0'
+USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
 SSL_CTX = ssl.create_default_context()
 MAIN_URL = re.compile(r'(override\s+var\s+mainUrl\s*=\s*)"[^"]+"')
 MAX_BODY = 2 * 1024 * 1024
+
+
+def normalize_tr(s):
+    return s.replace('İ', 'i').replace('I', 'ı').casefold().replace('ı', 'i')
 
 
 def normalize_origin(url):
@@ -50,6 +54,35 @@ class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
+def test_url_curl(origin, keyword, timeout=8, allowed_hosts=None, allow_redirect=False):
+    import subprocess
+    try:
+        cmd = ['curl', '-s', '-L', '-m', str(timeout), '-A', USER_AGENT, origin, '-w', '\n%{url_effective}\n%{http_code}']
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=timeout + 2)
+        if res.returncode != 0:
+            return False, None
+        parts = res.stdout.rsplit(b'\n', 2)
+        if len(parts) < 3:
+            return False, None
+        raw_body, final_url_b, http_code_b = parts[0], parts[1].strip(), parts[2].strip()
+        if http_code_b.decode('ascii', errors='ignore') != '200':
+            return False, None
+        body = raw_body.decode('utf-8', errors='replace').lower()
+        if not keyword.strip() or any(marker in body for marker in (
+                'cf-chl-', 'just a moment', 'verify you are human', 'domain is for sale', 'sedoparking')):
+            return False, None
+        title = re.search(r'<title\b[^>]*>(.*?)</title>', body, re.S)
+        if not title or normalize_tr(keyword) not in normalize_tr(title.group(1)):
+            return False, None
+        final = urllib.parse.urlsplit(final_url_b.decode('utf-8', errors='replace'))
+        hosts = allowed_hosts or {urllib.parse.urlsplit(origin).hostname}
+        if not allow_redirect and final.hostname not in hosts:
+            return False, None
+        return True, normalize_origin(urllib.parse.urlunsplit((final.scheme, final.netloc, '', '', '')))
+    except Exception:
+        return False, None
+
+
 def test_url(url, keyword, timeout=8, allowed_hosts=None, allow_redirect=False):
     """Verify TLS, redirect destination and a non-challenge HTML page."""
     try:
@@ -71,13 +104,17 @@ def test_url(url, keyword, timeout=8, allowed_hosts=None, allow_redirect=False):
                 return False, None
             title = re.search(r'<title\b[^>]*>(.*?)</title>', body, re.S)
             # A mention in an advertisement or a link is not site identity.
-            if not title or keyword.casefold() not in title.group(1).casefold():
+            if not title or normalize_tr(keyword) not in normalize_tr(title.group(1)):
                 return False, None
             final = urllib.parse.urlsplit(resp.url)
             if not allow_redirect and final.hostname not in handler.allowed_hosts:
                 return False, None
             return True, normalize_origin(urllib.parse.urlunsplit((final.scheme, final.netloc, '', '', '')))
     except Exception as exc:
+        if isinstance(exc, urllib.error.HTTPError) and exc.code == 403:
+            curl_res = test_url_curl(origin, keyword, timeout, hosts, allow_redirect)
+            if curl_res[0]:
+                return curl_res
         print(f'  [CHECK FAILED] {url}: {type(exc).__name__}: {exc}', flush=True)
         return False, None
 

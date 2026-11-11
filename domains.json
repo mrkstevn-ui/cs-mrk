@@ -198,12 +198,12 @@
   "InatTV": {
     "file": "TurkProviders/src/InatTV.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://patronkale2.cfd",
+    "current_url": "https://patronsaha1.cfd",
     "strategy": "redirect_and_mirrors",
     "mirrors": [
-      "https://patronkale2.cfd",
-      "https://patronkale1.cfd",
-      "https://inattv1327.xyz"
+      "https://patronsaha1.cfd",
+      "https://patronlig11.cfd",
+      "https://patronkale2.cfd"
     ],
     "verification_keyword": "patron",
     "api_url": "https://patronsports2.cfd"
@@ -211,12 +211,12 @@
   "Patronspor": {
     "file": "TurkProviders/src/Patronspor.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://patronkale3.cfd",
-    "strategy": "numeric_increment",
-    "pattern": "https://patronkale{num}.cfd",
+    "current_url": "https://patronsaha1.cfd",
+    "strategy": "redirect_and_mirrors",
     "mirrors": [
-      "https://patronkale2.cfd",
-      "https://patronkale1.cfd"
+      "https://patronsaha1.cfd",
+      "https://patronlig11.cfd",
+      "https://patronkale3.cfd"
     ],
     "verification_keyword": "patron",
     "api_url": "https://patronsports2.cfd"
@@ -254,7 +254,7 @@
       "https://yabancidizi.tv",
       "https://yabancidizi.watch"
     ],
-    "verification_keyword": "yabancidizi"
+    "verification_keyword": "yabancıdizi"
   },
   "WebteIzle": {
     "file": "TurkProviders/src/WebteIzle.kt",

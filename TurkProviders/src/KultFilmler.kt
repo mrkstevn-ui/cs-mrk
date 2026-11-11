@@ -15,17 +15,16 @@ class KultFilmler : AdaptiveProvider() {
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
 
     override val mainPage = mainPageOf(
-        "$mainUrl/film-arsivi/page/" to "Son Eklenen Filmler",
-        "$mainUrl/dizi-arsivi/page/" to "Son Eklenen Diziler"
+        "$mainUrl/" to "Son Eklenen Filmler"
     )
 
     override suspend fun mainPageProvider(page: Int, request: MainPageRequest): HomePageResponse {
-        val url = if (page <= 1) request.data else "${request.data}$page/"
-        val document = app.get(url).document.requireContent(name)
+        if (page > 1) return newHomePageResponse(request.name, emptyList(), hasNext = false)
+        val document = app.get(request.data).document.requireContent(name)
         val items = document.select("a.mcard, .movie-box, .poster a").mapNotNull { card ->
             toSearchResult(card)
         }.distinctBy { it.url }
-        return newHomePageResponse(request.name, items)
+        return newHomePageResponse(request.name, items, hasNext = false)
     }
 
     private fun toSearchResult(card: Element): SearchResponse? {
