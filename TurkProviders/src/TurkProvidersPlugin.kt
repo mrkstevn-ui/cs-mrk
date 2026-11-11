@@ -45,6 +45,8 @@ class TurkProvidersPlugin: Plugin() {
         safeRegister("Patronspor") { Patronspor() }
         safeRegister("SetFilmIzle") { SetFilmIzle() }
         safeRegister("SezonlukDizi") { SezonlukDizi() }
+        safeRegister("YabanciDizi") { YabanciDizi() }
+        safeRegister("WebteIzle") { WebteIzle() }
 
         safeExtractor("ByseJikuar") { ByseJikuar() }
         safeExtractor("ByseZoxexe") { ByseZoxexe() }

@@ -122,10 +122,11 @@
   "DiziPal": {
     "file": "TurkProviders/src/DiziPal.kt",
     "gradle": "TurkProviders/build.gradle.kts",
-    "current_url": "https://dizipal2152.com",
-    "strategy": "numeric_increment",
-    "pattern": "https://dizipal{num}.com",
+    "current_url": "https://dizipal.rest",
+    "strategy": "redirect_and_mirrors",
     "mirrors": [
+      "https://dizipal.rest",
+      "https://dizipal2152.com",
       "https://dizipal2146.com",
       "https://dizipal2145.com",
       "https://dizipal1592.com"
@@ -241,5 +242,30 @@
       "https://sezonlukdizi.vip"
     ],
     "verification_keyword": "sezonluk"
+  },
+  "YabanciDizi": {
+    "file": "TurkProviders/src/YabanciDizi.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
+    "current_url": "https://yabancidizi.news",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://yabancidizi.news",
+      "https://yabancidizi.org",
+      "https://yabancidizi.tv",
+      "https://yabancidizi.watch"
+    ],
+    "verification_keyword": "yabancidizi"
+  },
+  "WebteIzle": {
+    "file": "TurkProviders/src/WebteIzle.kt",
+    "gradle": "TurkProviders/build.gradle.kts",
+    "current_url": "https://webteizle.info",
+    "strategy": "redirect_and_mirrors",
+    "mirrors": [
+      "https://webteizle.info",
+      "https://webteizle.org",
+      "https://webteizle.vip"
+    ],
+    "verification_keyword": "webteizle"
   }
 }
