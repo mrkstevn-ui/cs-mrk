@@ -78,7 +78,7 @@ class HDFilmCehennemi : AdaptiveProvider() {
 
     // 2. ARAMA MOTORU
     override suspend fun searchProvider(query: String): List<SearchResponse> {
-        val searchUrl = "$mainUrl/search?q=$query"
+        val searchUrl = "$mainUrl/search?q=${encodeQuery(query)}"
         val searchHeaders = standardHeaders + mapOf(
             "Content-Type" to "application/json",
             "X-Requested-With" to "fetch"

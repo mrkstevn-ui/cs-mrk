@@ -140,3 +140,19 @@ fun org.jsoup.nodes.Document.cleanNoise(): org.jsoup.nodes.Document {
     this.select("aside, .sidebar, #sidebar, .widget, .widget-area, .popular, .trend, .trends, .trending, .slider, .featured-slider, header, footer").remove()
     return this
 }
+
+@Suppress("DEPRECATION")
+fun com.lagradost.cloudstream3.utils.ExtractorLink.withPrefix(prefix: String): com.lagradost.cloudstream3.utils.ExtractorLink {
+    return com.lagradost.cloudstream3.utils.ExtractorLink(
+        source = this.source,
+        name = "$prefix - ${this.name}",
+        url = this.url,
+        referer = this.referer,
+        quality = this.quality,
+        type = this.type,
+        headers = this.headers,
+        extractorData = this.extractorData
+    )
+}
+
+

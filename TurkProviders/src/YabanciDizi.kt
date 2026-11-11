@@ -135,7 +135,6 @@ class YabanciDizi : AdaptiveProvider() {
         val description = document.selectFirst("div.series-summary-wrapper p")?.text()?.trim()
             ?: document.selectFirst("meta[property='og:description']")?.attr("content")
         val tags = document.select("div.ui.list a").filter { !it.attr("href").contains("/oyuncu/") }.map { it.text().trim() }
-        val rating = document.selectFirst("div.color-imdb")?.text()?.trim()?.toRatingInt()
 
         if (url.contains("/dizi/")) {
             val episodes = mutableListOf<Episode>()
@@ -155,21 +154,19 @@ class YabanciDizi : AdaptiveProvider() {
                 }
             }
 
-            return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
+            return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.distinctBy { it.data }) {
                 addPoster(poster, mainUrl)
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
-            }
+            }.withMetadata(document)
         } else {
             return newMovieLoadResponse(title, url, TvType.Movie, url) {
                 addPoster(poster, mainUrl)
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
-            }
+            }.withMetadata(document)
         }
     }
 
@@ -209,7 +206,9 @@ class YabanciDizi : AdaptiveProvider() {
                     ),
                     data = mapOf("lang" to dataType, "episode" to dataEid, "type" to "langTab")
                 ).parsedSafe<AjaxSeries>()
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
                 null
             } ?: continue
 
@@ -229,11 +228,11 @@ class YabanciDizi : AdaptiveProvider() {
                                 referer = "$mainUrl/",
                                 headers = mapOf("User-Agent" to TURK_USER_AGENT)
                             ).document
-                            val iframe = vdmDoc.selectFirst("iframe")?.attr("src")
+                            val iframe = resolveHttpUrl(vdmDoc.selectFirst("iframe")?.attr("src"), "$mainUrl/")
                             if (!iframe.isNullOrBlank()) {
                                 loadExtractor(iframe, "$mainUrl/", subtitleCallback) { link ->
                                     foundAny = true
-                                    callback(link.copy(name = "$dilAd - ${link.name}"))
+                                    callback(link.withPrefix(dilAd))
                                 }
                             }
                         }
@@ -244,11 +243,11 @@ class YabanciDizi : AdaptiveProvider() {
                                 referer = "$mainUrl/",
                                 headers = mapOf("User-Agent" to TURK_USER_AGENT)
                             ).document
-                            val iframe = okrDoc.selectFirst("iframe")?.attr("src")
+                            val iframe = resolveHttpUrl(okrDoc.selectFirst("iframe")?.attr("src"), "$mainUrl/")
                             if (!iframe.isNullOrBlank()) {
                                 loadExtractor(iframe, "$mainUrl/", subtitleCallback) { link ->
                                     foundAny = true
-                                    callback(link.copy(name = "$dilAd - ${link.name}"))
+                                    callback(link.withPrefix(dilAd))
                                 }
                             }
                         }
@@ -259,7 +258,7 @@ class YabanciDizi : AdaptiveProvider() {
                                 referer = "$mainUrl/",
                                 headers = mapOf("User-Agent" to TURK_USER_AGENT)
                             ).document
-                            val iframe = macDoc.selectFirst("iframe")?.attr("src")
+                            val iframe = resolveHttpUrl(macDoc.selectFirst("iframe")?.attr("src"), "$mainUrl/")
                             if (!iframe.isNullOrBlank()) {
                                 if (decryptAndEmitMac(iframe, dilAd, callback)) {
                                     foundAny = true
@@ -273,17 +272,18 @@ class YabanciDizi : AdaptiveProvider() {
                                 referer = "$mainUrl/",
                                 headers = mapOf("User-Agent" to TURK_USER_AGENT)
                             ).document
-                            val iframe = fallbackDoc.selectFirst("iframe")?.attr("src")
+                            val iframe = resolveHttpUrl(fallbackDoc.selectFirst("iframe")?.attr("src"), "$mainUrl/")
                             if (!iframe.isNullOrBlank()) {
                                 loadExtractor(iframe, "$mainUrl/", subtitleCallback) { link ->
                                     foundAny = true
-                                    callback(link.copy(name = "$dilAd - ${link.name}"))
+                                    callback(link.withPrefix(dilAd))
                                 }
                             }
                         }
                     }
-                } catch (_: Exception) {
-                    // Try next embed
+                } catch (e: Exception) {
+                    if (e is java.util.concurrent.CancellationException) throw e
+                    reportStage("adapter", e)
                 }
             }
         }

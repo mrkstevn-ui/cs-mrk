@@ -274,19 +274,17 @@ class SezonlukDizi : AdaptiveProvider() {
                                 } catch (e: Exception) {
                                     if (e is java.util.concurrent.CancellationException) throw e
                                     reportStage("adapter", e)
-                                    // Ignore Byse error
                                 }
-                            }
-
-                            try {
-                                loadExtractor(fullIframeUrl, data, subtitleCallback) { link ->
-                                    callback.invoke(link)
-                                    foundLinks = true
+                            } else {
+                                try {
+                                    loadExtractor(fullIframeUrl, data, subtitleCallback) { link ->
+                                        callback.invoke(link)
+                                        foundLinks = true
+                                    }
+                                } catch (e: Exception) {
+                                    if (e is java.util.concurrent.CancellationException) throw e
+                                    reportStage("adapter", e)
                                 }
-                            } catch (e: Exception) {
-                                if (e is java.util.concurrent.CancellationException) throw e
-                                reportStage("adapter", e)
-                                // Ignore loadExtractor error
                             }
                         } catch (e: Exception) {
                             if (e is java.util.concurrent.CancellationException) throw e

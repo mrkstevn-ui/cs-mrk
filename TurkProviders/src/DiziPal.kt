@@ -117,9 +117,13 @@ class DiziPal : AdaptiveProvider() {
         val description = document.selectFirst("meta[name='description'], meta[property='og:description']")?.attr("content")?.trim()
 
         if (url.contains("/series/") || url.contains("/dizi/")) {
-            val epMatches = Regex("""/bolum/([a-zA-Z0-9_-]+)""").findAll(fullHtml)
-            val episodes = epMatches.mapNotNull { match ->
-                val epSlug = match.groupValues[1]
+            val seriesSlug = url.substringBefore("?").trimEnd('/').substringAfterLast('/')
+            val scopedContainer = document.clone().cleanNoise()
+            val epMatches = Regex("""/bolum/([a-zA-Z0-9_-]+)""").findAll(scopedContainer.html())
+            val allMatches = epMatches.map { it.groupValues[1] }.distinct().toList()
+            val filteredSlugs = allMatches.filter { it.startsWith(seriesSlug, ignoreCase = true) }.ifEmpty { allMatches }
+
+            val episodes = filteredSlugs.map { epSlug ->
                 val epUrl = "$mainUrl/bolum/$epSlug"
                 val seasonEpisodeMatch = Regex("""-(\d+)-sezon-(\d+)-bolum""").find(epSlug)
                     ?: Regex("""-(\d+)x(\d+)""").find(epSlug)
@@ -132,7 +136,7 @@ class DiziPal : AdaptiveProvider() {
                     this.season = sNum
                     this.episode = epNum
                 }
-            }.distinctBy { it.data }.toList()
+            }.distinctBy { it.data }.sortedWith(compareBy({ it.season ?: 1 }, { it.episode ?: Int.MAX_VALUE }))
 
             return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
                 addPoster(poster, mainUrl)
@@ -192,18 +196,19 @@ class DiziPal : AdaptiveProvider() {
 
         val host = iframeUri.host
         callback(
-            ExtractorLink(
+            newExtractorLink(
                 source = name,
                 name = name,
                 url = masterUrl,
-                referer = iframeUrl,
-                quality = Qualities.Unknown.value,
-                type = ExtractorLinkType.M3U8,
-                headers = mapOf(
+                type = ExtractorLinkType.M3U8
+            ) {
+                this.referer = iframeUrl
+                this.quality = Qualities.Unknown.value
+                this.headers = mapOf(
                     "Referer" to iframeUrl,
                     "Origin" to "https://$host"
                 )
-            )
+            }
         )
 
         return true

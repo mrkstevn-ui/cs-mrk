@@ -39,17 +39,20 @@ class BelgeselX : AdaptiveProvider() {
     }
 
     override suspend fun searchProvider(query: String): List<SearchResponse> {
-        val qLower = query.lowercase().trim()
-        val pagesToScan = listOf(
-            "$mainUrl/son-eklenenler",
-            "$mainUrl/en-cok-izlenen-belgeseller",
-            "$mainUrl/haftanin-trendleri"
-        )
         val results = mutableListOf<SearchResponse>()
+        val searchCandidates = listOf(
+            "$mainUrl/ara?q=${encodeQuery(query)}",
+            "$mainUrl/?s=${encodeQuery(query)}",
+            "$mainUrl/son-eklenenler",
+            "$mainUrl/en-cok-izlenen-belgeseller"
+        )
 
-        for (pageUrl in pagesToScan) {
+        for (pageUrl in searchCandidates) {
             try {
-                val document = app.get(pageUrl).document.requireContent(name)
+                val document = app.get(
+                    pageUrl,
+                    headers = mapOf("User-Agent" to TURK_USER_AGENT, "Referer" to "$mainUrl/")
+                ).document.requireContent(name)
                 document.select("a[href*='/belgesel/']").forEach { a ->
                     val href = fixUrlNull(a.attr("href")) ?: return@forEach
                     if (href.endsWith("/belgesel/") || href.endsWith("/belgesel")) return@forEach
@@ -63,6 +66,9 @@ class BelgeselX : AdaptiveProvider() {
                             addPoster(img, mainUrl)
                         })
                     }
+                }
+                if (results.isNotEmpty() && (pageUrl.contains("?q=") || pageUrl.contains("?s="))) {
+                    break
                 }
             } catch (e: Exception) {
                 if (e is java.util.concurrent.CancellationException) throw e

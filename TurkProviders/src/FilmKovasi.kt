@@ -43,7 +43,7 @@ class FilmKovasi : AdaptiveProvider() {
     }
 
     private fun toSearchResult(card: Element): SearchResponse? {
-        val linkEl = card.selectFirst("a[href*='filmkovasi.co']") ?: card.selectFirst("a")
+        val linkEl = card.selectFirst("a[href^='$mainUrl'], a[href*='-izle']") ?: card.selectFirst("a")
         val href = fixUrlNull(linkEl?.attr("href")?.substringBefore("?")) ?: return null
         if (href.contains("/page/") || href.contains("/tur/") || href.contains("/uye-ol/")) return null
 

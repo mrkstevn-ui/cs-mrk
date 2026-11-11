@@ -46,8 +46,11 @@ open class ByseExtractor(
             val payloadStr = playback.optString("payload")
             if (ivStr.isBlank() || payloadStr.isBlank() || keyParts.length() == 0) return
 
-            val p1 = keyParts.optString(version - 1)
-            val p2 = keyParts.optString(31 - version - 1)
+            val idx1 = version - 1
+            val idx2 = 31 - version - 1
+            if (idx1 !in 0 until keyParts.length() || idx2 !in 0 until keyParts.length()) return
+            val p1 = keyParts.optString(idx1)
+            val p2 = keyParts.optString(idx2)
             if (p1.isBlank() || p2.isBlank()) return
 
             val b1 = base64UrlDecode(p1)
@@ -81,18 +84,20 @@ open class ByseExtractor(
                 }
 
                 callback(
-                    ExtractorLink(
+                    com.lagradost.cloudstream3.utils.newExtractorLink(
                         source = name,
                         name = "$name $label",
                         url = streamUrl,
-                        referer = "$domain/",
-                        quality = quality,
                         type = if (streamUrl.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
-                    )
+                    ) {
+                        this.referer = "$domain/"
+                        this.quality = quality
+                        this.headers = mapOf("Referer" to "$domain/", "User-Agent" to TURK_USER_AGENT)
+                    }
                 )
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            if (e is java.util.concurrent.CancellationException) throw e
         }
     }
 

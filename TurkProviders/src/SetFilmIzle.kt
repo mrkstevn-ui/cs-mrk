@@ -249,18 +249,19 @@ class SetFilmIzle : AdaptiveProvider() {
                                     val manifestFullUrl = if (manifestPath.startsWith("http")) manifestPath else "https://fastplay.mom$manifestPath"
 
                                     callback.invoke(
-                                        ExtractorLink(
-                                            name = "SetFilmIzle (FastPlay)",
+                                        newExtractorLink(
                                             source = "SetFilmIzle",
+                                            name = "SetFilmIzle (FastPlay)",
                                             url = manifestFullUrl,
-                                            referer = decryptedFastplayUrl,
-                                            quality = Qualities.Unknown.value,
-                                            type = ExtractorLinkType.M3U8,
-                                            headers = mapOf(
+                                            type = ExtractorLinkType.M3U8
+                                        ) {
+                                            this.referer = decryptedFastplayUrl
+                                            this.quality = Qualities.Unknown.value
+                                            this.headers = mapOf(
                                                 "X-Sp" to xSp,
                                                 "Referer" to decryptedFastplayUrl
                                             )
-                                        )
+                                        }
                                     )
                                     foundLinks = true
                                 }

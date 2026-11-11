@@ -92,21 +92,15 @@ class WebteIzle : AdaptiveProvider() {
         val description = document.selectFirst("blockquote")?.text()?.trim()
             ?: document.selectFirst("meta[property='og:description']")?.attr("content")
         val tags = document.selectXpath("//a[@itemgroup='genre']").map { it.text().trim() }
-        val rating = document.selectFirst("div.detail")?.text()?.trim()?.replace(",", ".")?.toRatingInt()
         val duration = document.selectXpath("//td[contains(text(), 'Süre')]/following-sibling::td").text().trim().split(" ").firstOrNull()?.toIntOrNull()
-        val trailer = document.selectFirst("button#fragman")?.attr("data-ytid")
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
             addPoster(poster, mainUrl)
             this.year = year
             this.plot = description
             this.tags = tags
-            this.rating = rating
             this.duration = duration
-            if (!trailer.isNullOrBlank()) {
-                addTrailer("https://www.youtube.com/embed/$trailer")
-            }
-        }
+        }.withMetadata(document)
     }
 
     data class EmbedData(
@@ -167,7 +161,9 @@ class WebteIzle : AdaptiveProvider() {
                         "bot" to "0"
                     )
                 ).text
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                if (e is java.util.concurrent.CancellationException) throw e
+                reportStage("adapter", e)
                 null
             } ?: continue
 
@@ -205,11 +201,12 @@ class WebteIzle : AdaptiveProvider() {
                     if (!iframe.isNullOrBlank()) {
                         loadExtractor(iframe, "$mainUrl/", subtitleCallback) { link ->
                             foundAny = true
-                            callback(link.copy(name = "$dilAd - ${link.name}"))
+                            callback(link.withPrefix(dilAd))
                         }
                     }
-                } catch (_: Exception) {
-                    // Continue to next embed
+                } catch (e: Exception) {
+                    if (e is java.util.concurrent.CancellationException) throw e
+                    reportStage("adapter", e)
                 }
             }
         }

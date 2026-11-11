@@ -122,18 +122,19 @@ class FullHDFilmizlesene : AdaptiveProvider() {
                         val m3u8Url = deobfuscateRapidvid(cipherMatch)
                         if (m3u8Url.startsWith("http")) {
                             callback(
-                                ExtractorLink(
+                                newExtractorLink(
                                     source = name,
                                     name = "$name RapidVid",
                                     url = m3u8Url,
-                                    referer = decodedEmbedUrl,
-                                    quality = Qualities.Unknown.value,
-                                    type = ExtractorLinkType.M3U8,
-                                    headers = mapOf(
+                                    type = ExtractorLinkType.M3U8
+                                ) {
+                                    this.referer = decodedEmbedUrl
+                                    this.quality = Qualities.Unknown.value
+                                    this.headers = mapOf(
                                         "Referer" to "https://rapidvid.org/",
                                         "Origin" to "https://rapidvid.org"
                                     )
-                                )
+                                }
                             )
                             foundLinks = true
                         }

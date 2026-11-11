@@ -287,18 +287,19 @@ class HDFilmDelisi : AdaptiveProvider() {
                                 }
                             } else {
                                 callback.invoke(
-                                    ExtractorLink(
-                                        name = "${this.name} HLS",
+                                    newExtractorLink(
                                         source = this.name,
+                                        name = "${this.name} HLS",
                                         url = streamUrl,
-                                        referer = "https://pl.vixolity.com/",
-                                        quality = Qualities.Unknown.value,
-                                        type = ExtractorLinkType.M3U8,
-                                        headers = mapOf(
+                                        type = ExtractorLinkType.M3U8
+                                    ) {
+                                        this.referer = "https://pl.vixolity.com/"
+                                        this.quality = Qualities.Unknown.value
+                                        this.headers = mapOf(
                                             "Referer" to "https://pl.vixolity.com/",
                                             "User-Agent" to TURK_USER_AGENT
                                         )
-                                    )
+                                    }
                                 )
                                 foundLinks = true
                             }

@@ -25,8 +25,9 @@ fun MainAPI.schemaCatalog(document: Document): List<SearchResponse> {
 
 /** Explicit URL profiles; JSON API providers continue to own their request contracts. */
 fun schemaSearchUrl(provider: String, base: String, query: String): String? = when (provider) {
-    "KultFilmler", "DiziYou", "SetFilmIzle", "RareFilmm", "FilmKovasi" -> "$base/?s=${encodeQuery(query)}"
+    "KultFilmler", "DiziYou", "SetFilmIzle", "RareFilmm", "FilmKovasi", "BelgeselX" -> "$base/?s=${encodeQuery(query)}"
     "Dizigom" -> "$base/ara?q=${encodeQuery(query)}"
+    "WebteIzle" -> "$base/filtre?a=${encodeQuery(query)}"
     "DiziGecesi", "FullHDFilmizlesene" -> "$base/arama/${encodePathSegment(query)}"
     else -> null
 }

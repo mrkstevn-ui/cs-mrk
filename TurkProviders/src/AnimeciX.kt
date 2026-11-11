@@ -240,7 +240,8 @@ class AnimeciX : AdaptiveProvider() {
             ).text
 
             val videoData = AppUtils.parseJson<BatchVideosResponse>(postResp)
-            videoData.data?.firstOrNull()?.let { vItem ->
+            videoData.data?.forEach { vItem ->
+                val translatorName = vItem.translator ?: "Tau"
                 // Direct MP4 URLs
                 vItem.urls?.forEach { u ->
                     val streamUrl = u.url ?: return@forEach
@@ -248,7 +249,7 @@ class AnimeciX : AdaptiveProvider() {
                     callback.invoke(
                         newExtractorLink(
                             source = "AnimeciX",
-                            name = "AnimeciX [${u.label ?: "Bilinmeyen"}] (${vItem.translator ?: "Tau"})",
+                            name = "AnimeciX [${u.label ?: "Bilinmeyen"}] ($translatorName)",
                             url = streamUrl,
                             type = ExtractorLinkType.VIDEO
                         ) {
@@ -275,7 +276,7 @@ class AnimeciX : AdaptiveProvider() {
                             callback.invoke(
                                 newExtractorLink(
                                     source = "Tau Video",
-                                    name = "Tau Video [${tu.label ?: "Bilinmeyen"}]",
+                                    name = "Tau Video [${tu.label ?: "Bilinmeyen"}] ($translatorName)",
                                     url = tUrl,
                                     type = ExtractorLinkType.VIDEO
                                 ) {

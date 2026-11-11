@@ -9,8 +9,8 @@ import java.util.concurrent.CancellationException
 /** The API origin is independent of the catalog origin; never derive it by renaming the host. */
 abstract class LiveProvider : AdaptiveProvider() {
     abstract var apiUrl: String
-    private var resolvedBase: String? = null
-    private var resolvedAt = 0L
+    @Volatile private var resolvedBase: String? = null
+    @Volatile private var resolvedAt = 0L
     protected val matchesApi get() = "$apiUrl/matches.php"
     protected val channelsApi get() = "$apiUrl/channels.php"
 

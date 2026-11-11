@@ -35,25 +35,29 @@ def normalize_origin(url):
 
 
 class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
-    def __init__(self, allowed_hosts):
+    def __init__(self, allowed_hosts, allow_any_https_redirect=False):
         super().__init__()
-        self.allowed_hosts = allowed_hosts
+        self.allowed_hosts = set(allowed_hosts)
+        self.allow_any_https_redirect = allow_any_https_redirect
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         parsed = urllib.parse.urlsplit(newurl)
         origin = normalize_origin(urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, '', '', '')))
-        if urllib.parse.urlsplit(origin).hostname not in self.allowed_hosts:
+        host = urllib.parse.urlsplit(origin).hostname
+        if not self.allow_any_https_redirect and host not in self.allowed_hosts:
             raise ValueError(f'Unapproved redirect domain: {origin}; add it to mirrors after review')
+        self.allowed_hosts.add(host)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
-def test_url(url, keyword, timeout=8, allowed_hosts=None):
+def test_url(url, keyword, timeout=8, allowed_hosts=None, allow_redirect=False):
     """Verify TLS, redirect destination and a non-challenge HTML page."""
     try:
         origin = normalize_origin(url)
-        hosts = allowed_hosts or {urllib.parse.urlsplit(origin).hostname}
+        hosts = set(allowed_hosts) if allowed_hosts else {urllib.parse.urlsplit(origin).hostname}
+        handler = SafeRedirectHandler(hosts, allow_any_https_redirect=allow_redirect)
         opener = urllib.request.build_opener(
-            urllib.request.HTTPSHandler(context=SSL_CTX), SafeRedirectHandler(hosts))
+            urllib.request.HTTPSHandler(context=SSL_CTX), handler)
         req = urllib.request.Request(origin, headers={'User-Agent': USER_AGENT, 'Accept': 'text/html'})
         with opener.open(req, timeout=timeout) as resp:
             if resp.status != 200 or 'text/html' not in resp.headers.get('Content-Type', '').lower():
@@ -70,7 +74,7 @@ def test_url(url, keyword, timeout=8, allowed_hosts=None):
             if not title or keyword.casefold() not in title.group(1).casefold():
                 return False, None
             final = urllib.parse.urlsplit(resp.url)
-            if final.hostname not in hosts:
+            if not allow_redirect and final.hostname not in handler.allowed_hosts:
                 return False, None
             return True, normalize_origin(urllib.parse.urlunsplit((final.scheme, final.netloc, '', '', '')))
     except Exception as exc:
@@ -149,9 +153,10 @@ def run(root, apply=False):
         print(f'[{name}] Checking {cfg["current_url"]}', flush=True)
         urls = candidates(cfg)
         hosts = {urllib.parse.urlsplit(url).hostname for url in urls}
+        allow_redirect = cfg.get('strategy') == 'redirect_follow'
         active = None
         for url in urls:
-            ok, verified = test_url(url, cfg['verification_keyword'], allowed_hosts=hosts)
+            ok, verified = test_url(url, cfg['verification_keyword'], allowed_hosts=hosts, allow_redirect=allow_redirect)
             if ok:
                 active = verified
                 break

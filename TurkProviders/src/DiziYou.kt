@@ -198,14 +198,16 @@ class DiziYou : AdaptiveProvider() {
 
                         if (m3u8Url != null && m3u8Url.isNotBlank()) {
                             callback.invoke(
-                                ExtractorLink(
-                                    name = this.name,
+                                newExtractorLink(
                                     source = this.name,
+                                    name = this.name,
                                     url = m3u8Url,
-                                    referer = embedResponse.url,
-                                    quality = Qualities.Unknown.value,
                                     type = ExtractorLinkType.M3U8
-                                )
+                                ) {
+                                    this.referer = embedResponse.url
+                                    this.quality = Qualities.Unknown.value
+                                    this.headers = mapOf("Referer" to embedResponse.url, "User-Agent" to TURK_USER_AGENT)
+                                }
                             )
                             foundLinks = true
                         }
